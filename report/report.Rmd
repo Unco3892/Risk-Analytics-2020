@@ -1,0 +1,17 @@
+---
+title: "Risk Analytics - Report"
+author: "Name I, First Name I and Name II, First Name II"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:html_document:toc: true
+---
+
+<!-- Ilia will add some nice formating options here later. -->
+
+```{r child = 'practical-1.Rmd'}
+```
+
+```{r child = 'practical-2.Rmd'}
+```
+
+```{r child = 'practical-3.Rmd'}
+```
