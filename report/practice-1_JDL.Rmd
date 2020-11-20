@@ -42,4 +42,23 @@ waiting %>%
   coord_flip()
 ```
 
-b)
+b) 
+
+```{r}
+n <- 250
+
+p <- (1-(1/n))
+
+mean <- mean(waiting$Average.Wait.Seconds)
+sd <- sd(waiting$Average.Wait.Seconds)
+
+upper_limit <- qnorm(p, mean, sd)
+```
+
+
+```{r}
+qqnorm(scale(waiting$Average.Wait.Seconds))
+qqline(scale(waiting$Average.Wait.Seconds))
+hist(waiting$Average.Wait.Seconds)
+```
+
