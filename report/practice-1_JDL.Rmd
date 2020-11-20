@@ -1,0 +1,45 @@
+---
+title: "report"
+output: html_document
+---
+
+Data Loading
+
+```{r}
+waiting <- read_csv(here::here("data/waiting.csv"))
+```
+
+
+a) 
+
+```{r}
+waiting %>%
+  ggplot(aes(Date, Average.Wait.Seconds)) +
+  geom_line() +
+  geom_point()
+```
+
+
+```{r}
+waiting %>%
+  mutate(Weekday=factor(Weekday, levels= c("Monday", 
+    "Tuesday", "Wednesday", "Thursday", "Friday"))) %>%
+  group_by(Weekday) %>%
+  summarize(Min = min(Average.Wait.Seconds),
+             Q1 = quantile(Average.Wait.Seconds, .25),
+             Avg = mean(Average.Wait.Seconds), 
+             Q3 = quantile(Average.Wait.Seconds, .75),
+             Max = max(Average.Wait.Seconds))
+```
+
+
+```{r}
+waiting %>%
+  mutate(Weekday=factor(Weekday, levels= c("Monday", 
+    "Tuesday", "Wednesday", "Thursday", "Friday"))) %>%
+  ggplot(aes(Average.Wait.Seconds, Weekday)) +
+  geom_boxplot() +
+  coord_flip()
+```
+
+b)
