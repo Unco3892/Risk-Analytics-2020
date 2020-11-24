@@ -3,22 +3,24 @@ title: "report"
 output: html_document
 ---
 
-Data Loading
+# Practical 1: A control chart problem
+
+# a)
 
 ```{r}
 waiting <- read_csv(here::here("data/waiting.csv"))
 ```
 
+*Graph* displays the daily waiting times period that the Data covers. It is difficult to notice any seasonality or cyclic patterns in the extreme waiting times.
 
-a) 
-
-```{r}
+```{r, fig.asp=.2}
 waiting %>%
   ggplot(aes(Date, Average.Wait.Seconds)) +
   geom_line() +
   geom_point()
 ```
 
+As shown on *graph* and on *table*, Monday, Tuesday and Wednesday are the days of the week tht present the highests extreme values. We can also notice that even if Friday has the highest average waiting time, its maximum value is the lowest.
 
 ```{r}
 waiting %>%
@@ -32,17 +34,21 @@ waiting %>%
              Max = max(Average.Wait.Seconds))
 ```
 
-
 ```{r}
 waiting %>%
   mutate(Weekday=factor(Weekday, levels= c("Monday", 
     "Tuesday", "Wednesday", "Thursday", "Friday"))) %>%
   ggplot(aes(Average.Wait.Seconds, Weekday)) +
   geom_boxplot() +
-  coord_flip()
+  coord_flip() +
+  ylab("") +
+  xlab("Average waiting time (sec)")
 ```
 
-b) 
+# b) 
+
+As the one year period corresponds to $n = 250$, we can deduce the upper control limit, which corresponds to $p = 1-1/n$ and equals to `r p`. 
+After scaling this value, we can retrieve the associated quantile or the upper control limit, which corresponds to `r upper_limit`.
 
 ```{r}
 n <- 250
@@ -53,12 +59,19 @@ mean <- mean(waiting$Average.Wait.Seconds)
 sd <- sd(waiting$Average.Wait.Seconds)
 
 upper_limit <- qnorm(p, mean, sd)
+upper_limit
 ```
 
-
+*Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theorical values under the assumption of a normal distribution. This suggests that the tails are heavy.
 ```{r}
 qqnorm(scale(waiting$Average.Wait.Seconds))
 qqline(scale(waiting$Average.Wait.Seconds))
 hist(waiting$Average.Wait.Seconds)
 ```
+ 
+ 
+Running the Shapiro-Wilk test shows that the hypothesis of normality is rejected at level `r shapiro$p.value`
 
+```{r}
+shapiro <- shapiro.test(waiting$Average.Wait.Seconds)
+```

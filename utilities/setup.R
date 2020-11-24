@@ -5,9 +5,6 @@
 # load the required packages
 packages <- c(
   "here",
-  # for txt mining
-  "quanteda",
-  "quanteda.textmodels",
   # for the project's organization
   "tidyverse",
   "lubridate",
@@ -15,7 +12,6 @@ packages <- c(
   "ggrepel",
   "gghighlight",
   "patchwork",
-  "maps",
   "scales",
   "magrittr",
   "stringi",
@@ -23,9 +19,7 @@ packages <- c(
   # for plotting
   "knitr",
   "kableExtra",
-  "wordcloud",
   "RColorBrewer",
-  "ggwordcloud",
   # for the report
   "bookdown",
   "rmarkdown",
