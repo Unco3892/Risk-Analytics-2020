@@ -47,9 +47,6 @@ waiting %>%
 
 # b) 
 
-As the one year period corresponds to $n = 250$, we can deduce the upper control limit, which corresponds to $p = 1-1/n$ and equals to `r p`. 
-After scaling this value, we can retrieve the associated quantile or the upper control limit, which corresponds to `r upper_limit`.
-
 ```{r}
 n <- 250
 
@@ -62,6 +59,11 @@ upper_limit <- qnorm(p, mean, sd)
 upper_limit
 ```
 
+<!-- Note from ilia: the paragraph should be placed below the code otherwise the file would not knit (does not know what p or n is in that way). -->
+
+As the one year period corresponds to `n = 250`, we can deduce the upper control limit, which corresponds to `p = 1-1/n` and equals to `r p`. 
+After scaling this value, we can retrieve the associated quantile or the upper control limit, which corresponds to `r upper_limit`.
+
 *Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theorical values under the assumption of a normal distribution. This suggests that the tails are heavy.
 ```{r}
 qqnorm(scale(waiting$Average.Wait.Seconds))
@@ -69,13 +71,11 @@ qqline(scale(waiting$Average.Wait.Seconds))
 hist(waiting$Average.Wait.Seconds)
 ```
  
- 
-Running the Shapiro-Wilk test shows that the hypothesis of normality is rejected at level `r shapiro$p.value`
-
 ```{r}
 shapiro <- shapiro.test(waiting$Average.Wait.Seconds)
 ```
 
+Running the Shapiro-Wilk test shows that the hypothesis of normality is rejected at level `r shapiro$p.value`
 
 # c) The aim of this analysis is to focus on negative effects (long wait times). Explain how you would proceed using 1) a block maxima and 2) a peaks-over-threshold approach. For each method, carry out the required data aggregation and transformation.
 
@@ -207,9 +207,6 @@ waiting %>%
 
 Then we can make use of the aforementioned packages.
 
-
-Note that a period of 30 days, gives us a much more realistic maximum of `r threshold_30` than the `r threshold` seconds we observed previously.
-
 ```{r}
 # using the `evir` library.
 fit_30 <- gev(waiting$Average.Wait.Seconds,30)
@@ -218,7 +215,8 @@ threshold_30 <- fit_30$par.ests[[3]] - (fit_30$par.ests[[2]]/fit_30$par.ests[[1]
 
 # uncomment below if plot does not generate well
 # par(pty= "s")
-plot.gev(fit_30)
+# this does not work when knitting
+# plot.gev(fit_30)
 
 # We can also try on weekly basis
 fit_7 <- gev(waiting$Average.Wait.Seconds,7) 
@@ -249,6 +247,8 @@ plot(M1JP)
 extremes_approach <- fevd(waiting$Average.Wait.Seconds)
 extRemes::plot.fevd(extremes_approach)
 ```
+
+Note that a period of 30 days, gives us a much more realistic maximum of `r threshold_30` than the `r threshold` seconds we observed previously.
 
 Now we can evaluate them to see if the situation of normality has improved or not.
 
