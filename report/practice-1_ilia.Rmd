@@ -1,0 +1,300 @@
+---
+title: "report"
+output: html_document
+---
+```{r, echo = FALSE, message = FALSE, include=FALSE}
+source(here::here("scripts/setup.R"))
+```
+
+# a)
+
+```{r}
+waiting <- read_csv(here::here("data/waiting.csv"))
+```
+*Graph* displays the daily waiting times period that the Data covers. It is difficult to notice any seasonality or cyclic patterns in the extreme waiting times.
+
+```{r, fig.asp=.2}
+waiting %>%
+  ggplot(aes(Date, Average.Wait.Seconds)) +
+  geom_line() +
+  geom_point()
+```
+
+As shown on *graph* and on *table*, Monday, Tuesday and Wednesday are the days of the week that present the highest extreme values. We can also notice that even if Friday has the highest average waiting time, its maximum value is the lowest.
+
+```{r}
+waiting %>%
+  mutate(Weekday=factor(Weekday, levels= c("Monday", 
+    "Tuesday", "Wednesday", "Thursday", "Friday"))) %>%
+  group_by(Weekday) %>%
+  summarize(Min = min(Average.Wait.Seconds),
+             Q1 = quantile(Average.Wait.Seconds, .25),
+             Avg = mean(Average.Wait.Seconds), 
+             Q3 = quantile(Average.Wait.Seconds, .75),
+             Max = max(Average.Wait.Seconds))
+```
+
+```{r}
+waiting %>%
+  mutate(Weekday=factor(Weekday, levels= c("Monday", 
+    "Tuesday", "Wednesday", "Thursday", "Friday"))) %>%
+  ggplot(aes(Average.Wait.Seconds, Weekday)) +
+  geom_boxplot() +
+  coord_flip() +
+  ylab("") +
+  xlab("Average waiting time (sec)")
+```
+
+# b) 
+
+As the one year period corresponds to $n = 250$, we can deduce the upper control limit, which corresponds to $p = 1-1/n$ and equals to `r p`. 
+After scaling this value, we can retrieve the associated quantile or the upper control limit, which corresponds to `r upper_limit`.
+
+```{r}
+n <- 250
+
+p <- (1-(1/n))
+
+mean <- mean(waiting$Average.Wait.Seconds)
+sd <- sd(waiting$Average.Wait.Seconds)
+
+upper_limit <- qnorm(p, mean, sd)
+upper_limit
+```
+
+*Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theorical values under the assumption of a normal distribution. This suggests that the tails are heavy.
+```{r}
+qqnorm(scale(waiting$Average.Wait.Seconds))
+qqline(scale(waiting$Average.Wait.Seconds))
+hist(waiting$Average.Wait.Seconds)
+```
+ 
+ 
+Running the Shapiro-Wilk test shows that the hypothesis of normality is rejected at level `r shapiro$p.value`
+
+```{r}
+shapiro <- shapiro.test(waiting$Average.Wait.Seconds)
+```
+
+
+# c) The aim of this analysis is to focus on negative effects (long wait times). Explain how you would proceed using 1) a block maxima and 2) a peaks-over-threshold approach. For each method, carry out the required data aggregation and transformation.
+
+## Transformations.
+
+### Log transformation
+```{r}
+log_waits <- log10(waiting$Average.Wait.Seconds)
+qqnorm(log_waits)
+qqline(log_waits)
+hist(log_waits)
+
+shapiro.test(log_waits)
+```
+
+Looking at the histogram graph, the transformation does seem to have helped, however not as much. The histogram was positively skewed and now it is negatively skewed and not symmetrical as expected. The QQ-plot also shows some improvements but not significant ones. The shapiro-test also confirms that we still do not have a normal distribution.
+
+One possibility would be to do a cox-box plot and determine the lambda.
+
+### Rescaling if necessary to include
+
+```{r}
+# we can also rescaled 
+waits <-
+  (waiting$Average.Wait.Seconds - mean(waiting$Average.Wait.Seconds)) / sd(waiting$Average.Wait.Seconds)
+
+qqnorm(waits)
+rug(waits, side = 2)
+qqline(waits)
+hist(waits)
+```
+
+After rescaling, the spread seems to be from 0-3.5 where it is expected to be between 0-2. We also don't have a symmetric distribution and it is skewed towards the top.
+
+<!-- Check about the comment above -->
+
+1) Block Maxima approach
+To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and $\mu for the maxima. To do so, we can either do it manually, or use a library to do it.
+
+We will demonstrate in part d) how this is executed.
+
+<!-- Add more comments for the text above -->
+
+## 2) peaks-over-threshold approach
+
+
+# d) Propose a model for the data you have processed in the previous question. Make sure to justify your model choice using residuals and goodness-of-fit tests. (Hint: you may use the evd package.)
+
+First we will start-off by doing it manually.
+
+```{r}
+loglik_gev <- function(x, mu, sigma, xi) {
+  n <- length(x)
+  z <- (x - mu) / sigma
+  if (any(1 + xi * z <= 0)) {
+    # enforce support
+    return(-1e9)
+  }
+  if (abs(xi) < 1e-9) {
+    # Gumbel case
+    out <- -n * log(sigma) - sum(exp(-z)) - sum(z)
+  } else {
+    # Frechet or Weibull
+    out <-
+      -n * log(sigma) - (1 / xi + 1) * sum(log(1 + xi * z)) - sum((1 + xi * z) ^
+                                                                    (-1 / xi))
+  }
+  return(out)
+}
+```
+
+Then we will carry out our optimization.
+
+```{r}
+starting_values <-
+  c(mean(waiting$Average.Wait.Seconds),
+    sd(waiting$Average.Wait.Seconds),
+    0)
+
+# see ?optim for details
+fit_gev <- optim(
+  starting_values,
+  fn = function(p)
+    loglik_gev(waiting$Average.Wait.Seconds, p[1], p[2], p[3]),
+  control = list(fnscale = -1),
+  # do maximisation instead of minimisation
+  lower = c(0, 0, -5),
+  # lower bounds on parameters
+  method = "L-BFGS-B",
+  hessian = TRUE # extract hessian matrix
+)
+
+fit_gev$par
+
+# to compare our values with our starting point
+rbind (starting_values, fit_gev$par)
+
+# we can compute the fitted values using mu - sigma / xi
+threshold <- fit_gev$par[1] - fit_gev$par[2]/fit_gev$par[3]
+
+# barplot(waiting$Average.Wait.Seconds, ylim =c(0, round_any(threshold,1000)))
+# abline(h = threshold, col= "red")
+```
+
+Looking at the output, we can see that $\xi=$`r fit_gev$par[3]`, $\sigma=$`r fit_gev$par[2]`, and $\mu$`r fit_gev$par[1]`. The $\xi=$ is negative and indicates that this may be a Fréchet distribution, which means that the distribution has an upper bound and cannot go until infinity, however, it is very close to zero therefore we cannot be certain of it's shape.
+
+One problem of this approach is that the maxima in theory can reach `r threshold` seconds of waiting time which is no where near our current `max(waiting$Average.Wait.Seconds)` seconds waiting time and this may be quite unrealistic.
+
+To complement these results and compare them with various windows, we can make use of the `evr`,`extRemes` and `ismev` packages.
+
+First to determine the window, we can use at the three different blocks, by 1 month, 1 week and 1 year.
+```{r}
+# To see what the block size should be
+waiting %>% 
+  ggplot(aes(x= Date, y= Average.Wait.Seconds)) + 
+  geom_point()+
+  scale_x_date(date_minor_breaks = "1 month")
+
+waiting %>% 
+  ggplot(aes(x= Date, y= Average.Wait.Seconds)) + 
+  geom_point()+
+  scale_x_date(date_minor_breaks = "1 week")
+
+waiting %>% 
+  ggplot(aes(x= Date, y= Average.Wait.Seconds)) + 
+  geom_point()+
+  scale_x_date(date_breaks = "1 year")
+```
+
+Then we can make use of the aforementioned packages.
+
+
+Note that a period of 30 days, gives us a much more realistic maximum of `r threshold_30` than the `r threshold` seconds we observed previously.
+
+```{r}
+# using the `evir` library.
+fit_30 <- gev(waiting$Average.Wait.Seconds,30)
+# period of one month gives realistic results with negative xi
+threshold_30 <- fit_30$par.ests[[3]] - (fit_30$par.ests[[2]]/fit_30$par.ests[[1]])
+
+# uncomment below if plot does not generate well
+# par(pty= "s")
+plot.gev(fit_30)
+
+# We can also try on weekly basis
+fit_7 <- gev(waiting$Average.Wait.Seconds,7) 
+threshold_7 <- fit_7$par.ests[[3]] - (fit_7$par.ests[[2]]/fit_7$par.ests[[1]])
+
+# 20 days may make more sense because that's how working days there are in a month
+fit_20 <- gev(waiting$Average.Wait.Seconds,20)
+
+# the code below fails most likely due to optimization issues
+# fit <- gev(waiting$Average.Wait.Seconds, 100)
+
+# Note: if we take it weekly the xi would be lower but always positive but you would
+# have less extreme values, however the residuals do seem better
+
+# using the `ismev` library, we see that get different results
+fit_ismev <- gev.fit(waiting$Average.Wait.Seconds)
+
+# par(pty= "s")
+gev.diag(fit_ismev)
+
+# third approach using the `evd` library
+fit_evd <- evd::fgev(waiting$Average.Wait.Seconds)
+evd_profile <- profile(fit_evd)
+M1JP <- profile2d(fit_evd, evd_profile, which = c("scale", "shape"))
+plot(M1JP)
+
+# fourth approach using the `extRemes` library
+extremes_approach <- fevd(waiting$Average.Wait.Seconds)
+extRemes::plot.fevd(extremes_approach)
+```
+
+Now we can evaluate them to see if the situation of normality has improved or not.
+
+```{r}
+# checking for normality with shapiro-wilk test
+# different `evd` approaches
+y_30 <-
+  qnorm(exp(
+    -(1 + fit_30$par.ests[[1]] * (waiting$Average.Wait.Seconds - fit_30$par.ests[[3]]) / fit_30$par.ests[[2]]) ^
+      -(1 / fit_30$par.ests[[1]])
+  ))
+
+shapiro.test(y_30)
+
+y_20 <-
+  qnorm(exp(
+    -(1 + fit_20$par.ests[[1]] * (waiting$Average.Wait.Seconds - fit_20$par.ests[[3]]) / fit_20$par.ests[[2]]) ^
+      -(1 / fit_20$par.ests[[1]])
+  ))
+shapiro.test(y_20)
+
+# `ismev` approach
+y_ismev <-
+  qnorm(exp(-(
+    1 + fit_ismev$mle[[3]] * (waiting$Average.Wait.Seconds - fit_ismev$mle[[1]]) / fit_ismev$mle[[2]]) ^
+    -(1 / fit_ismev$mle[[3]])))
+
+shapiro.test(y_ismev)
+
+# `extRemes` approach
+y_extRemes <-
+  qnorm(exp(
+    -(1 + extremes_approach$results$par[[3]] * (
+        waiting$Average.Wait.Seconds - extremes_approach$results$par[[1]]
+      ) / extremes_approach$results$par[[2]]
+    ) ^
+      -(1 / extremes_approach$results$par[[3]])
+  ))
+
+shapiro.test(y_extRemes)
+```
+
+Questions for Max:
+- What should be the block size?
+- xi is near to zero, and we're not certain, how to treat that?
+- Why does the optimization fail with the block of 100 and the log() transformed variable?
+
+
+# e) Finally, use your model to derive an upper control limit or confidence line for the waiting times at the one-year return level.
