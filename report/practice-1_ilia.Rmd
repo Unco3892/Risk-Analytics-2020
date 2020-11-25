@@ -59,12 +59,10 @@ upper_limit <- qnorm(p, mean, sd)
 upper_limit
 ```
 
-<!-- Note from ilia: the paragraph should be placed below the code otherwise the file would not knit (does not know what p or n is in that way). -->
-
 As the one year period corresponds to `n = 250`, we can deduce the upper control limit, which corresponds to `p = 1-1/n` and equals to `r p`. 
 After scaling this value, we can retrieve the associated quantile or the upper control limit, which corresponds to `r upper_limit`.
 
-*Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theorical values under the assumption of a normal distribution. This suggests that the tails are heavy.
+*Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theoretical values under the assumption of a normal distribution. This suggests that the tails are heavy.
 ```{r}
 qqnorm(scale(waiting$Average.Wait.Seconds))
 qqline(scale(waiting$Average.Wait.Seconds))
@@ -124,7 +122,7 @@ The Block Maxima approach divides the dataset into blocks with the same number o
      
 # per month
 plot_all_obs <-waiting %>% 
-  full_join( max_per_month, by = c("Average.Wait.Seconds" = "Max.Seconds")) %>% 
+  full_join(max_per_month, by = c("Average.Wait.Seconds" = "Max.Seconds")) %>% 
   ggplot(aes(x = Date, y = Average.Wait.Seconds)) +
   geom_point()
 
@@ -359,7 +357,8 @@ Questions for Max:
 - What should be the block size?
 - xi is near to zero, and we're not certain, how to treat that?
 - Why does the optimization fail with the block of 100 and the log() transformed variable?
-
+- Return period from the extRemes goes up to 1,000 years, why? It is not even the block size.
+- How to the return levels?
 
 # e) Finally, use your model to derive an upper control limit or confidence line for the waiting times at the one-year return level.
 
