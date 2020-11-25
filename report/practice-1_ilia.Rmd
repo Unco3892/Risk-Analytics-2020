@@ -117,10 +117,74 @@ To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and 
 
 We will demonstrate in part d) how this is executed.
 
-<!-- Add more comments for the text above -->
+The Block Maxima approach divides the dataset into blocks with the same number of observations. Then, for each block we select the observation with the highest value. Looking at the dataset, we can divide the it by months, week or year:
 
-## 2) peaks-over-threshold approach
+```{r}
+# To see what the block size should be
+     
+# per month
+plot_all_obs <-waiting %>% 
+  full_join( max_per_month, by = c("Average.Wait.Seconds" = "Max.Seconds")) %>% 
+  ggplot(aes(x = Date, y = Average.Wait.Seconds)) +
+  geom_point()
 
+tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
+                            length=36, by="1 month"), 2),
+                  y=rnorm(72),
+                  category=gl(2,36))
+
+plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
+                linetype=4, colour="red")
+
+
+# per week
+tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
+                            length=102, by="1 week"), 2))
+
+plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
+                linetype=4, colour="red")
+
+
+# per year
+
+tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
+                            length=2, by="1 year"), 2))
+
+plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
+                linetype=4, colour="red")
+```
+
+Looking at the data aggregation per month, week and year we conclude that the best way to break the blocks is per month. 
+
+
+## 2) Peaks-over-threshold approach
+
+The Peaks-over-threshold approach defines the extreme values as the observation above a certain threshold u. In order to find this threshold, we can use an mrlplot:
+
+```{r}
+
+# POT approach
+library(extRemes)
+library(xts)
+library(ismev) 
+# mrlplot(waiting$Average.Wait.Seconds, main="Mean Residual Life Plot")
+
+
+mrl.plot(waiting$Average.Wait.Seconds,umin = min(waiting$Average.Wait.Seconds), umax = max(waiting$Average.Wait.Seconds))
+mrlplot(log(waiting$Average.Wait.Seconds),conf = 0.95, main="Mean Residual Life Plot")
+```
+
+We have computed two Mean Residual Rife Plots. In the second, we have transformed the data in log, allowing to have an estimated mean excess function almost perfectly linear. This result shows that it may be better to use such transformation when working with the POT. 
+Moreover, the pot allows us to have to define the threshold u, which in this case we would set to 4.5
+
+```{r}
+waits <-
+  (waiting$Average.Wait.Seconds - mean(waiting$Average.Wait.Seconds)) / sd(waiting$Average.Wait.Seconds)
+
+waiting %>% 
+  ggplot(aes(x=Date, y= log(waiting$Average.Wait.Seconds))) +
+  geom_point()
+```
 
 # d) Propose a model for the data you have processed in the previous question. Make sure to justify your model choice using residuals and goodness-of-fit tests. (Hint: you may use the evd package.)
 
@@ -298,3 +362,28 @@ Questions for Max:
 
 
 # e) Finally, use your model to derive an upper control limit or confidence line for the waiting times at the one-year return level.
+
+
+```{r}
+# 1 year return level
+waiting %>% 
+  group_by(year(ymd(waiting$Date))) %>% 
+  count()
+```
+
+Having 250 observation for the first year, we consider 1 year = 250 days. 
+Hence, our control limit will be the value that we expect to exceed every 250 days, which we can compute as follows:
+
+```{r}
+return.level(waiting$Average.Wait.Seconds,
+    do.ci = FALSE, qcov = NULL, qcov.base = NULL)
+??return.level
+
+
+var <-var(waiting$Average.Wait.Seconds, y = NULL)
+fevd(var)
+
+rgev(447, loc=0, scale=1, shape=1)
+
+```
+

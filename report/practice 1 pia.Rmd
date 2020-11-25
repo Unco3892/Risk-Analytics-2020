@@ -1,0 +1,150 @@
+---
+title: "report"
+output: html_document
+---
+
+Data Loading
+
+```{r}
+waiting <- read.csv(here::here("data/waiting.csv"))
+```
+
+
+a) 
+
+```{r}
+waiting %>%
+  ggplot(aes(Date, Average.Wait.Seconds)) +
+  geom_line() +
+  geom_point()
+```
+
+
+```{r}
+waiting %>%
+  mutate(Weekday=factor(Weekday, levels= c("Monday", 
+    "Tuesday", "Wednesday", "Thursday", "Friday"))) %>%
+  group_by(Weekday) %>%
+  summarize(Min = min(Average.Wait.Seconds),
+             Q1 = quantile(Average.Wait.Seconds, .25),
+             Avg = mean(Average.Wait.Seconds), 
+             Q3 = quantile(Average.Wait.Seconds, .75),
+             Max = max(Average.Wait.Seconds))
+```
+
+
+```{r}
+waiting %>%
+  mutate(Weekday=factor(Weekday, levels= c("Monday", 
+    "Tuesday", "Wednesday", "Thursday", "Friday"))) %>%
+  ggplot(aes(Average.Wait.Seconds, Weekday)) +
+  geom_boxplot() +
+  coord_flip()
+```
+
+b) 
+
+```{r}
+n <- 250
+
+p <- (1-(1/n))
+
+mean <- mean(waiting$Average.Wait.Seconds)
+sd <- sd(waiting$Average.Wait.Seconds)
+
+upper_limit <- qnorm(p, mean, sd)
+```
+
+
+```{r}
+qqnorm(scale(waiting$Average.Wait.Seconds))
+qqline(scale(waiting$Average.Wait.Seconds))
+hist(waiting$Average.Wait.Seconds)
+```
+
+c)
+
+```{r}
+
+library(dplyr)
+library(lubridate) 
+library(ggplot2)
+
+str(waiting)
+waiting$Date <- as.Date(waiting$Date)
+
+# Block maxima
+# v1. division per month
+
+max_per_month <- waiting %>% 
+  group_by(year(ymd(waiting$Date)), month(ymd(waiting$Date))) %>% 
+  summarise(max(Average.Wait.Seconds)) %>% 
+  mutate( Year = `year(ymd(waiting$Date))`,
+          Month = `month(ymd(waiting$Date))`,
+          Max.Seconds = `max(Average.Wait.Seconds)`) %>% 
+  select (Year, Month, Max.Seconds)
+
+plot_all_obs <-waiting %>% 
+  full_join( max_per_month, by = c("Average.Wait.Seconds" = "Max.Seconds")) %>% 
+  ggplot(aes(x = Date, y = Average.Wait.Seconds)) +
+  geom_point()
+
+plot_only_max_month <- waiting %>% 
+  full_join( max_per_month, by = c("Average.Wait.Seconds" = "Max.Seconds")) %>% 
+  filter (Month != is.na(Month)) 
+
+plot_all_obs + geom_vline(aes(xintercept = Date, color = "red"), linetype = "longdash", plot_only_max_month) 
+
+# v2. all period have the same number of observations
+# there is a mean of 20 observations per month, so we divide the set in periods with 20 obs 
+waiting %>% 
+   group_by(year(ymd(waiting$Date)), month(ymd(waiting$Date))) %>% 
+   count() 
+
+waiting %>% 
+  
+
+
+```
+
+
+```{r}
+
+# POT approach
+# library(extRemes)
+# library(xts)
+# 
+# mrlplot(waiting$Average.Wait.Seconds, main="Mean Residual Life Plot")
+
+library(ismev)
+mrlplot(waiting$Average.Wait.Seconds, main="Mean Residual Life Plot")
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
