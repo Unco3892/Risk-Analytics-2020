@@ -122,7 +122,14 @@ The Block Maxima approach divides the dataset into blocks with the same number o
      
 # per month
 plot_all_obs <-waiting %>% 
+<<<<<<< Updated upstream
   #full_join(max_per_month, by = c("Average.Wait.Seconds" = "Max.Seconds")) %>% 
+=======
+<<<<<<< HEAD
+=======
+  full_join(max_per_month, by = c("Average.Wait.Seconds" = "Max.Seconds")) %>% 
+>>>>>>> da19925a02f8194da6d2d03a65c631c9ff6bc8ed
+>>>>>>> Stashed changes
   ggplot(aes(x = Date, y = Average.Wait.Seconds)) +
   geom_point()
 
