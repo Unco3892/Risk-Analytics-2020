@@ -119,7 +119,8 @@ The Block Maxima approach divides the dataset into blocks with the same number o
 
 ```{r}
 # To see what the block size should be
-     
+library(dplyr)
+library(ggplot2)
 # per month
 plot_all_obs <-waiting %>% 
   #full_join(max_per_month, by = c("Average.Wait.Seconds" = "Max.Seconds")) %>% 
@@ -150,6 +151,7 @@ tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
 
 plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
                 linetype=4, colour="red")
+# remove last month withouth data
 ```
 
 Looking at the data aggregation per month, week and year we conclude that the best way to break the blocks is per month. 
@@ -169,7 +171,12 @@ library(ismev)
 
 
 mrl.plot(waiting$Average.Wait.Seconds,umin = min(waiting$Average.Wait.Seconds), umax = max(waiting$Average.Wait.Seconds))
+
 mrlplot(log(waiting$Average.Wait.Seconds),conf = 0.95, main="Mean Residual Life Plot")
+ 
+# evd package
+# tcplot --> confirm choice of threshold
+
 ```
 
 We have computed two Mean Residual Rife Plots. In the second, we have transformed the data in log, allowing to have an estimated mean excess function almost perfectly linear. This result shows that it may be better to use such transformation when working with the POT. 
