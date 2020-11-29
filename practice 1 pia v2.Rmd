@@ -85,33 +85,22 @@ The Block Maxima approach divides the dataset into blocks with the same number o
 # To see what the block size should be
 library(dplyr)
 library(ggplot2)
-# per month
 
-waiting$Date <- as.Date(waiting$Date)
+waiting %>% 
+  group_by(year(ymd(Date)), month(ymd(Date))) %>%
+  head(20) %>% 
+  filter(Average.Wait.Seconds == max(Average.Wait.Seconds))
 
-plot_all_obs <-waiting %>% 
-  ggplot(aes(x = Date, y = Average.Wait.Seconds)) +
-  geom_point()
+test<- split(waiting, 20)
 
-tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
-                            length=36, by="1 month"), 2),
-                  y=rnorm(72),
-                  category=gl(2,36))
+group_split(waiting, year(ymd(Date)), month(ymd(Date)), .keep = TRUE)
 
-plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
-                linetype=4, colour="red")
+split(waiting, sample(1:22, nrow(waiting), replace=T))
 
-
-# per week
-tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
-                            length=102, by="1 week"), 2))
-
-plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
-                linetype=4, colour="red")
-
-
+test %>% 
+  group_by(year(ymd(Date)), month(ymd(Date))) %>%
+  filter(Average.Wait.Seconds == max(Average.Wait.Seconds))
 # per year
-
 tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
                             length=2, by="1 year"), 2))
 
