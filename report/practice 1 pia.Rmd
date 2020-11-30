@@ -194,15 +194,12 @@ fit_gev_maxima$std.err
 
 
 ``` {r}
-library(evir)
-fit_gev_maxima_evir<-gev(maxima$Average.Wait.Seconds)
-fit_gev_maxima_evir
-plot(fit_gev_maxima_evir, main = c("Scatterplot of Residuals", "QQplot of Residuals"), ask = FALSE)
+library(ismev)
+fit_gev_maxima_evir<-gev.fit(maxima$Average.Wait.Seconds)
+gev.diag(fit_gev_maxima_evir)
 
-# first scatterplot
-# second QQplot
+# plot(fit_gev_maxima_evir, main = c("Scatterplot of Residuals", "QQplot of Residuals"), ask = FALSE)
 
- 
 ```
 
 
@@ -229,17 +226,23 @@ plot(pot_800)
 ```{r}
 library(evir)
 
+# Original approach
 pot_2_600<-gpd(waiting$Average.Wait.Seconds, threshold = 600, nextremes = NA, method = c("ml"))
 par(mfrow=c(2,2))
 plot(pot_2_600)    
 
 
+# Using another approach
+# Use ismev with gpd.fit() and then gdp.diag to do it
+gpd.fit()
+gpd.diag()
 ```
 ```{r}
-
+# Original code needs changing
 pot_2_800<-gpd(waiting$Average.Wait.Seconds, threshold = 800, nextremes = NA, method = c("ml"))
 par(mfrow=c(2,2))
-plot(pot_2_800)    
+plot(pot_2_800) 
+
 ```
 
 # e) Finally, use your model to derive an upper control limit or confidence line for the waiting times at the one-year return level.
