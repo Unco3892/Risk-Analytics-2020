@@ -178,7 +178,7 @@ plot_all_obs + geom_hline(yintercept=800,
 1) Block Maxima approach
 To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and $\mu for the maxima. To do so, we can either do it manually, or use a library to do it.
 
-```{r, warning = FALSE}
+```{r, warning = FALSE, message = FALSE}
 # fitting the GEV to the maxima in order to have the location, scale and shape parameters
 library(evd)
 fit_gev_maxima <- evd::fgev(maxima$Average.Wait.Seconds)
