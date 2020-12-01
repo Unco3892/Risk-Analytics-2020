@@ -85,7 +85,7 @@ shapiro <- shapiro.test(waiting$Average.Wait.Seconds)
 ## c)
 ### Block Maxima
 
-The Block Maxima approach divides the dataset into blocks with the same number of observations. Then, for each block we select the observation with the highest value. Looking at the dataset, we can divide the it by months or weekly :
+The Block Maxima approach divides the dataset into blocks with the same number of observations. Then, for each block we select the observation with the highest value. Looking at the dataset, we can divide it by months or on a weekly basis :
 
 ```{r}
 plot_all_obs <-waiting %>% 
@@ -112,7 +112,8 @@ plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
 ```
 
 
-Looking at the data aggregation per month, week and year we conclude that the best way to break the blocks is per month. So we are going to select the maximum for each block and do our analysis on the maxima. 
+Looking at the data aggregation per month and week, we can say that the first seems to be better. However in order to confirm this hypothesis, when modelling we are going to analyse both cases and keep the model that provides the best results.
+For the models, we are going to fit a GEV functin on the maxima of each block, represented by the red dots in the following plots.
 
 ```{r}
 maxima_monthly <- waiting %>% 
@@ -141,7 +142,7 @@ waiting %>%
 
 ### Peaks-over-threshold approach
 
-The Peaks-over-threshold approach defines the extreme values as the observations above a certain threshold u. In order to find this threshold, we can use an mrlplot:
+The Peaks-over-threshold approach defines the extreme values as the observations above a certain threshold u. In order to find this threshold, we can use an mrlplot and the tcplot. 
 
 ```{r,message = FALSE,warning=FALSE}
 mrlplot(waiting$Average.Wait.Seconds,umin = min(waiting$Average.Wait.Seconds), umax = max(waiting$Average.Wait.Seconds))
@@ -151,7 +152,7 @@ tcplot(waiting$Average.Wait.Seconds, tlim = c(81,1100), std.err = FALSE)
 
 # we take a threshold of 800
 ```
-
+Looking at the plot, we belive that the best threshold is at a value of 800. However, we are going to see if this holds true by analysing the results in case we use a threshold of 600.
 
 ```{r,message = FALSE,warning=FALSE}
 u1 <- 600
@@ -194,10 +195,12 @@ waiting %>%
   guides(color = FALSE)
 ```
 
+We are going to fit a GPD on the difference between the observations highleted in the red dots and the thresholds. Once, using a threshold of 800 and then, of 600.
+
 ## d)
 ### Block Maxima
 
-To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and $\mu for the maxima. To do so, we can either do it manually, or use a library to do it.
+To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and $\mu for the maxima. First, we will fit a model on the monthly maxima, then on the weekly ones.
 
 Monthly :
 ```{r, warning = FALSE, message = FALSE}
@@ -208,16 +211,25 @@ fit_gev_maxima_monthly <- fgev(maxima_monthly$Average.Wait.Seconds)
 # plot(M1JP)
 
 fit_gev_maxima_monthly
+shape <- fit_gev_maxima_monthly$estimate[3]
 ```
+
+The estimates of the GEV show that the latter is a Weibull: indeed, the shape parameter is negative `r shape`.
+
 
 ```{r}
 par(mfrow = c(2,2))
 plot(fit_gev_maxima_monthly)
 ```
 
+Looking at the plot, we remark that if on the one hand the probability plot is not well fitted, on the other hand the observations almost perfectly fit the straight line in the qq-plot. Moreover, the Return Level Plot shows a 
+function that is concave: this is a consequence of the negative shape parameter. 
+
 ```{r}
-stats::AIC(fit_gev_maxima)
+# stats::AIC(fit_gev_maxima)
 ```
+
+We are now going to make the same analysis but this time using the weekly maxima.
 
 Weekly
 
@@ -226,17 +238,29 @@ fit_gev_maxima_weekly <- fgev(maxima_weekly$Average.Wait.Seconds)
 fit_gev_maxima_weekly
 ```
 
+Once again, we have a shape parameter that is negative, meaning that we are still in a Weibull. 
+
 ```{r}
 par(mfrow = c(2,2))
 plot(fit_gev_maxima_weekly)
 ```
 
+Using weekly data it comes without suprise that the number of maxima is higher compared to the previous case. We can observe that the observations almost perfectly fit the lines of our plots, showing that this is a good model. In order to compare the models and select the best one, we use the AIC criteria:
+
 ```{r}
-AIC(fit_gev_maxima_weekly)
+AIC_monhtly <- stats::AIC(fit_gev_maxima)
+AIC_weekly <- AIC(fit_gev_maxima_weekly)
+
 ```
 
+For the model using the montly maxima, the AIC is `r AIC_monthly`, while the model using the weekly data has an AIC of `r AIC_weekly`. Hence, the first model is better as its AIC is lower.
 
 ### POT
+
+We are now going to fit a model using the Peak-over-threshold approach. The function we use for this model is fpot, which fits the difference between the observations and the threshold to a GPD. 
+As we saw previously, two thresholds are likely to be interesting for the modeling: the first one is a threhsold u1 of 800, and the second is at 600. Like we did in the previous analysis with the block maxima, we are going to analyse both and select the best model using the AIC criteria.
+
+
 ```{r}
 # fits the w = x - u to a gpd
 fit_pot_u1 <-fpot(waiting$Average.Wait.Seconds, threshold = u1, model = c("gpd"))
@@ -247,9 +271,12 @@ fit_pot_u2 <-fpot(waiting$Average.Wait.Seconds, threshold = u2, model = c("gpd")
 par(mfrow=c(2,2))
 plot(fit_pot_u1)
 ```
+The plots above are the results of the analysis using a threhsold of `r u1`. We can see that the output are good, meaning that the model is well fitted to our data. Moreover, we can observe that once again the Return Level Plot has a function that is concave, suggesting a negative shape parameter for the model. 
+
+We are now going to do the same analysis using a threshold of `r u2`
 
 ```{r}
-stats::AIC(fit_pot_u1)
+# stats::AIC(fit_pot_u1)
 ```
 
 
@@ -258,10 +285,15 @@ par(mfrow=c(2,2))
 plot(fit_pot_u2)
 ```
 
-```{r}
-stats::AIC(fit_pot_u2)
-```
+Naturally, having a higher threhsold the number of observations is lower. Hoever, the model seems to be well fitted.
 
+Since by looking at the plot both models are satisifying, we use the AIC criteria to choose the best one.
+
+```{r}
+AIC_u2 <- stats::AIC(fit_pot_u2)
+AIC_u1 <- AIC(fit_pot_u1)
+```
+The models using a threshold of `r u1` and  `r u2` have an AIC of respectively  `r AIC_u1` and  `r AIC_u2`. Hence, we are going to select the model with the threshold of `r u2`.
 
 ## e) 
 ### Block Maxima
@@ -272,12 +304,15 @@ One year return level corresponds, in our dataset, to 250 days.
 # return level block maxima:
 return_level_maxima <- fit_gev_maxima_monthly$estimate[1] + (fit_gev_maxima_monthly$estimate[2]/fit_gev_maxima_monthly$estimate[3])*(((-log(1-1/250))^-fit_gev_maxima_monthly$estimate[3])-1)
 
-return_level_maxima[[1]]
+return_level <- return_level_maxima[[1]]
+return_level
 ```
+
+After one year, we expect the Average waiting time in seconds to be of `r return_level`.
 
 ### POT
 
-confidence line
+Confidence Line
 ```{r}
 n.survivors <- waiting %>%
   filter(Average.Wait.Seconds > u2) %>%
@@ -290,6 +325,7 @@ confidence_line <- u2 + fit_pot_u2$estimate[1]/fit_pot_u2$estimate[2] * (((1-p)/
 confidence_line[[1]]
 ```
 
+We expect the confidence to be at `r confidence_line`.
 ```{r}
 # test <- waiting %>% 
 #   group_by(year(ymd(Date)), week(ymd(Date))) %>%
