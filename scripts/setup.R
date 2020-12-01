@@ -6,9 +6,13 @@
 packages <- c(
   "here", # for the project's organization
   "tidyverse", "lubridate", # for wrangling
-  "ggrepel", "gghighlight", "patchwork", "maps", "scales", # for plotting
+  "ggrepel", "gghighlight", "patchwork", "scales", # for plotting
   "knitr", "kableExtra", "bookdown", "rmarkdown",
-  "plyr", "evir", "ismev", "extRemes","evd")
+  #"plyr", 
+  #"evir", 
+  #"ismev", 
+  #"extRemes", 
+  "evd")
 
 # install packages if they were not already installed
 unavailable <- setdiff(packages, rownames(installed.packages()))

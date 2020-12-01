@@ -5,9 +5,14 @@ output: html_document
 
 # Practical 1: A control chart problem
 
-# a)
+## a)
 
-```{r}
+```{r, echo = FALSE, message = FALSE, include=FALSE}
+source(here::here("scripts/setup.R"))
+```
+
+
+```{r, warning=FALSE, message=FALSE}
 waiting <- read_csv(here::here("data/waiting.csv"))
 ```
 
@@ -45,7 +50,7 @@ waiting %>%
   xlab("Average waiting time (sec)")
 ```
 
-# b) 
+## b) 
 
 As the one year period corresponds to $n = 250$, we can deduce the upper control limit, which corresponds to $p = 1-1/n$ and equals to `r p`. 
 After scaling this value, we can retrieve the associated quantile or the upper control limit, which corresponds to `r upper_limit`.
@@ -75,3 +80,154 @@ Running the Shapiro-Wilk test shows that the hypothesis of normality is rejected
 ```{r}
 shapiro <- shapiro.test(waiting$Average.Wait.Seconds)
 ```
+
+
+## c)
+### Block Maxima
+
+The Block Maxima approach divides the dataset into blocks with the same number of observations. Then, for each block we select the observation with the highest value. Looking at the dataset, we can divide the it by months or weekly :
+
+```{r}
+plot_all_obs <-waiting %>% 
+  ggplot(aes(x = Date, y = Average.Wait.Seconds)) +
+  geom_point()
+
+tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
+                            length=36, by="1 month"), 2),
+                  y=rnorm(72),
+                  category=gl(2,36))
+
+plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
+                linetype=4, colour="red")
+```
+
+
+```{r}
+# per week
+tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
+                            length=102, by="1 week"), 2))
+
+plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
+                linetype=4, colour="red")
+```
+
+
+Looking at the data aggregation per month, week and year we conclude that the best way to break the blocks is per month. So we are going to select the maximum for each block and do our analysis on the maxima. 
+
+```{r}
+maxima_monthly <- waiting %>% 
+  group_by(year(ymd(Date)), month(ymd(Date))) %>% 
+  filter(Average.Wait.Seconds == max(Average.Wait.Seconds))
+```
+
+
+```{r}
+waiting %>%
+  ggplot(aes(Date, Average.Wait.Seconds)) +
+  geom_line() +
+  geom_point(aes(Date, Average.Wait.Seconds), data = maxima_monthly, color = "red")
+```
+
+
+### Peaks-over-threshold approach
+
+The Peaks-over-threshold approach defines the extreme values as the observations above a certain threshold u. In order to find this threshold, we can use an mrlplot:
+
+```{r,message = FALSE,warning=FALSE}
+mrlplot(waiting$Average.Wait.Seconds,umin = min(waiting$Average.Wait.Seconds), umax = max(waiting$Average.Wait.Seconds))
+
+tlim <- c(81,1182)
+tcplot(waiting$Average.Wait.Seconds, tlim = c(81,1100), std.err = FALSE)
+
+# we take a threshold of 800
+```
+
+
+```{r,message = FALSE,warning=FALSE}
+u <- 800
+
+
+waiting$col <- cut(waiting$Average.Wait.Seconds,
+               breaks = c(-Inf, u, Inf),
+               labels = c("<=u", ">u")) 
+
+waiting %>%
+  ggplot() +
+  geom_line(aes(Date, Average.Wait.Seconds)) +
+  geom_point(aes(Date, Average.Wait.Seconds, color = col)) +
+  scale_colour_manual(values = c('black', 'red')) +
+  geom_hline(yintercept = u,
+             linetype = 4,
+             colour = "red") +
+  guides(color = FALSE)
+```
+
+## d)
+### Block Maxima
+
+To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and $\mu for the maxima. To do so, we can either do it manually, or use a library to do it.
+
+```{r, warning = FALSE, message = FALSE}
+# fitting the GEV to the maxima in order to have the location, scale and shape parameterss
+fit_gev_maxima <- fgev(maxima_monthly$Average.Wait.Seconds)
+# evd_profile <- profile(gev_maxima)
+# M1JP <- profile2d(fit_evd, evd_profile, which = c("scale", "shape"))
+# plot(M1JP)
+
+fit_gev_maxima
+```
+
+```{r}
+par(mfrow = c(2,2))
+plot(fit_gev_maxima)
+```
+
+```{r}
+stats::AIC(fit_gev_maxima)
+```
+
+
+### POT
+```{r}
+# fits the w = x - u to a gpd
+pot_800 <-fpot(waiting$Average.Wait.Seconds, threshold = 800, model = c("gpd"))
+#pot_600 <-fpot(waiting$Average.Wait.Seconds, threshold = 600, model = c("gpd"))
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+plot(pot_800)
+```
+
+```{r}
+stats::AIC(pot_800)
+```
+
+
+## e) 
+### Block Maxima
+
+One year return level corresponds, in our dataset, to 250 days.
+
+```{r}
+# return level block maxima:
+return_level_maxima <- fit_gev_maxima$estimate[1] + (fit_gev_maxima$estimate[2]/fit_gev_maxima$estimate[3])*(((-log(1-1/250))^-fit_gev_maxima$estimate[3])-1)
+
+return_level_maxima
+```
+
+### POT
+
+confidence line
+```{r}
+n.survivors <- waiting %>%
+  filter(Average.Wait.Seconds > u) %>%
+  summarize(n = n()) %>%
+  pull(n)
+
+p.survivors <- n.survivors/length(waiting$Average.Wait.Seconds)
+
+VaR <- u + pot_800$estimate[1]/pot_800$estimate[2] * (((1-p)/p.survivors)^-pot_800$estimate[2]-1)
+```
+
