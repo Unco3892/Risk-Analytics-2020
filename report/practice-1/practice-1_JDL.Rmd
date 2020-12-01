@@ -118,6 +118,10 @@ Looking at the data aggregation per month, week and year we conclude that the be
 maxima_monthly <- waiting %>% 
   group_by(year(ymd(Date)), month(ymd(Date))) %>% 
   filter(Average.Wait.Seconds == max(Average.Wait.Seconds))
+
+maxima_weekly <- waiting %>% 
+  group_by(year(ymd(Date)), week(ymd(Date))) %>% 
+  filter(Average.Wait.Seconds == max(Average.Wait.Seconds))
 ```
 
 
@@ -128,6 +132,12 @@ waiting %>%
   geom_point(aes(Date, Average.Wait.Seconds), data = maxima_monthly, color = "red")
 ```
 
+```{r}
+waiting %>%
+  ggplot(aes(Date, Average.Wait.Seconds)) +
+  geom_line() +
+  geom_point(aes(Date, Average.Wait.Seconds), data = maxima_weekly, color = "red")
+```
 
 ### Peaks-over-threshold approach
 
@@ -144,20 +154,42 @@ tcplot(waiting$Average.Wait.Seconds, tlim = c(81,1100), std.err = FALSE)
 
 
 ```{r,message = FALSE,warning=FALSE}
-u <- 800
+u1 <- 600
 
+u2 <- 800
 
-waiting$col <- cut(waiting$Average.Wait.Seconds,
-               breaks = c(-Inf, u, Inf),
+waiting$col1 <- cut(waiting$Average.Wait.Seconds,
+               breaks = c(-Inf, u1, Inf),
                labels = c("<=u", ">u")) 
 
+waiting$col2 <- cut(waiting$Average.Wait.Seconds,
+               breaks = c(-Inf, u2, Inf),
+               labels = c("<=u", ">u"))
+```
+
+
+```{r,message = FALSE,warning=FALSE}
 waiting %>%
   ggplot() +
   geom_line(aes(Date, Average.Wait.Seconds)) +
-  geom_point(aes(Date, Average.Wait.Seconds, color = col)) +
+  geom_point(aes(Date, Average.Wait.Seconds, color = col1)) +
   scale_colour_manual(values = c('black', 'red')) +
-  geom_hline(yintercept = u,
-             linetype = 4,
+  geom_hline(yintercept = u1,
+             linetype = 2,
+             colour = "red") +
+  guides(color = FALSE)
+```
+
+
+
+```{r}
+waiting %>%
+  ggplot() +
+  geom_line(aes(Date, Average.Wait.Seconds)) +
+  geom_point(aes(Date, Average.Wait.Seconds, color = col2)) +
+  scale_colour_manual(values = c('black', 'red')) +
+  geom_hline(yintercept = u2,
+             linetype = 2,
              colour = "red") +
   guides(color = FALSE)
 ```
@@ -167,41 +199,67 @@ waiting %>%
 
 To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and $\mu for the maxima. To do so, we can either do it manually, or use a library to do it.
 
+Monthly :
 ```{r, warning = FALSE, message = FALSE}
 # fitting the GEV to the maxima in order to have the location, scale and shape parameterss
-fit_gev_maxima <- fgev(maxima_monthly$Average.Wait.Seconds)
+fit_gev_maxima_monthly <- fgev(maxima_monthly$Average.Wait.Seconds)
 # evd_profile <- profile(gev_maxima)
 # M1JP <- profile2d(fit_evd, evd_profile, which = c("scale", "shape"))
 # plot(M1JP)
 
-fit_gev_maxima
+fit_gev_maxima_monthly
 ```
 
 ```{r}
 par(mfrow = c(2,2))
-plot(fit_gev_maxima)
+plot(fit_gev_maxima_monthly)
 ```
 
 ```{r}
 stats::AIC(fit_gev_maxima)
 ```
 
+Weekly
+
+```{r, warning = FALSE, message = FALSE}
+fit_gev_maxima_weekly <- fgev(maxima_weekly$Average.Wait.Seconds)
+fit_gev_maxima_weekly
+```
+
+```{r}
+par(mfrow = c(2,2))
+plot(fit_gev_maxima_weekly)
+```
+
+```{r}
+AIC(fit_gev_maxima_weekly)
+```
+
 
 ### POT
 ```{r}
 # fits the w = x - u to a gpd
-pot_800 <-fpot(waiting$Average.Wait.Seconds, threshold = 800, model = c("gpd"))
-#pot_600 <-fpot(waiting$Average.Wait.Seconds, threshold = 600, model = c("gpd"))
+fit_pot_u1 <-fpot(waiting$Average.Wait.Seconds, threshold = u1, model = c("gpd"))
+fit_pot_u2 <-fpot(waiting$Average.Wait.Seconds, threshold = u2, model = c("gpd"))
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(fit_pot_u1)
+```
+
+```{r}
+stats::AIC(fit_pot_u1)
 ```
 
 
 ```{r}
 par(mfrow=c(2,2))
-plot(pot_800)
+plot(fit_pot_u2)
 ```
 
 ```{r}
-stats::AIC(pot_800)
+stats::AIC(fit_pot_u2)
 ```
 
 
@@ -212,9 +270,9 @@ One year return level corresponds, in our dataset, to 250 days.
 
 ```{r}
 # return level block maxima:
-return_level_maxima <- fit_gev_maxima$estimate[1] + (fit_gev_maxima$estimate[2]/fit_gev_maxima$estimate[3])*(((-log(1-1/250))^-fit_gev_maxima$estimate[3])-1)
+return_level_maxima <- fit_gev_maxima_monthly$estimate[1] + (fit_gev_maxima_monthly$estimate[2]/fit_gev_maxima_monthly$estimate[3])*(((-log(1-1/250))^-fit_gev_maxima_monthly$estimate[3])-1)
 
-return_level_maxima
+return_level_maxima[[1]]
 ```
 
 ### POT
@@ -222,12 +280,20 @@ return_level_maxima
 confidence line
 ```{r}
 n.survivors <- waiting %>%
-  filter(Average.Wait.Seconds > u) %>%
+  filter(Average.Wait.Seconds > u2) %>%
   summarize(n = n()) %>%
   pull(n)
 
 p.survivors <- n.survivors/length(waiting$Average.Wait.Seconds)
 
-VaR <- u + pot_800$estimate[1]/pot_800$estimate[2] * (((1-p)/p.survivors)^-pot_800$estimate[2]-1)
+confidence_line <- u2 + fit_pot_u2$estimate[1]/fit_pot_u2$estimate[2] * (((1-p)/p.survivors)^-fit_pot_u2$estimate[2]-1)
+confidence_line[[1]]
+```
+
+```{r}
+# test <- waiting %>% 
+#   group_by(year(ymd(Date)), week(ymd(Date))) %>%
+#   mutate(Q = Average.Wait.Seconds - quantile(Average.Wait.Seconds, .9)) %>%
+#   filter(Q > 0)
 ```
 
