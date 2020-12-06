@@ -55,7 +55,7 @@ Newsboy(m= mean_s,sd= sd_s,p=10,c=1,s=0.1)
 ```
 
 # c)
-Value-at-Risk (VaR) also known is chance constraint are used in the newsvendor model as constraints, limiting the probability of particular event (in this case stock-out) happening.
+Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening.
 
 VaR answers the question of how much one can lose with
 x% probability over a given time horizon.
