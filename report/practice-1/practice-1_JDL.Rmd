@@ -152,7 +152,7 @@ tcplot(waiting$Average.Wait.Seconds, tlim = c(81,1100), std.err = FALSE)
 
 # we take a threshold of 800
 ```
-Looking at the plot, we belive that the best threshold is at a value of 800. However, we are going to see if this holds true by analysing the results in case we use a threshold of 600.
+Looking at the plot, we believe that the best threshold is at a value of 800. However, we are going to see if this holds true by analyzing the results in case we use a threshold of 600.
 
 ```{r,message = FALSE,warning=FALSE}
 u1 <- 600

@@ -1,0 +1,158 @@
+---
+title: "report"
+output: html_document
+---
+
+```{r, echo = FALSE, message = FALSE, include=FALSE}
+source(here::here("scripts/setup.R"))
+```
+
+# a)
+
+```{r}
+sales_data <-
+  read.delim(here::here("data/sales_1.txt"), col.names = "Sales") %>% mutate(Day = row_number())
+```
+
+```{r}
+stockout <- which(diff(sales_data$Sales) == -sales_data$Sales & sales_data$Sales !=0)
+
+ggplot(data = sales_data, aes(x = Day, y = Sales)) +
+  geom_line()+
+  geom_point()+
+  geom_vline(xintercept =stockout, color= "red") +
+  labs(title = "Sales unit by day")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+The red line shows when the observed number of sales goes to zero, essentially the extreme of the sales, there are also other instances where it nears to zero however we ignore them for simplicity sake. We run of stock in these cases.
+
+# b)
+Newsvendor model.
+
+```{r}
+# Manual approach
+newsvendor_mod <- function(price,cost,unit_salvage){
+  salvage <- unit_salvage * cost
+  underage <- price - cost
+  overage <- cost - salvage
+  fractile <- underage / (overage + underage)
+  return(fractile)
+}
+
+cf_news <- newsvendor_mod(10,1,0.1)
+
+cf_news
+```
+
+Alternatively, we could have used the [Scperf](https://cran.r-project.org/web/packages/SCperf/SCperf.pdf) library and the `Newsboy` function.
+
+```{r}
+# Using a library
+library(SCperf)
+mean_s <- mean(sales_data$Sales)
+sd_s <- sd(sales_data$Sales)
+Newsboy(m= mean_s,sd= sd_s,p=10,c=1,s=0.1)
+```
+
+# c)
+Value-at-Risk (VaR) also known is chance constraint are used in the newsvendor model as constraints, limiting the probability of particular event (in this case stock-out) happening. 
+
+VaR answers the question of how much one can lose with
+x% probability over a given time horizon.
+
+In this case, we have much more underage cost than overage giving us a ratio of `r cf_news`.
+
+Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'
+
+TO BE CONTINUED
+
+# d)
+First we have to determine a value for `u`.
+
+```{r,message = FALSE,warning=FALSE}
+u_plot <- function (a_column) {
+  min_col <- min(a_column)
+  max_col <- max(a_column)
+  mrlplot(a_column,
+          umin = min_col,
+          umax = max_col)
+  upper_threshold <- (max_col-(max_col*0.1))
+  tcplot(a_column,
+         tlim = c(min_col, upper_threshold),
+         std.err = FALSE)
+}
+
+u_plot(sales_data$Sales)
+
+```
+
+Poisson model.
+
+using maximum likelihood estimation for μ.
+
+Mean excess plot.
+
+`Number of exceedences / n`
+
+```{r}
+library (MASS)
+sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
+
+quant <- 0
+
+ppois(quant,sales_poisson$estimate, lower.tail= F)
+
+# qpois(cf_news,sales_poisson$estimate, lower.tail = F)
+
+# Ratio
+sales_poisson
+
+# quantity = 0
+
+```
+
+
+# e)
+
+POT model.
+
+```{r}
+
+```
+
+
+# f)
+
+Back test as seen on the slides. We will go over this in more detail.
+
+```{r}
+
+```
+
+
+
+Thresholds of 150 and 170 seem interesting, we can test for both.
+
+```{r}
+# u150 <- 150
+# u170 <- 170
+# 
+# cutter <- function(a_column, u_threshold){
+#   waiting$col <- cut(a_column,
+#                breaks = c(-Inf, u_threshold, Inf),
+#                labels = c("<=u", ">u")) 
+# }
+# 
+# cutter(u150)
+
+waiting %>%
+  ggplot() +
+  geom_line(aes(sales_data, Sales)) +
+  geom_point(aes(Date, Sales, color = col1)) +
+  scale_colour_manual(values = c('black', 'red')) +
+  geom_hline(yintercept = u1,
+             linetype = 2,
+             colour = "red") +
+  guides(color = FALSE)
+
+```
