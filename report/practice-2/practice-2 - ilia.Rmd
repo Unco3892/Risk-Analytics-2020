@@ -55,7 +55,7 @@ Newsboy(m= mean_s,sd= sd_s,p=10,c=1,s=0.1)
 ```
 
 # c)
-Value-at-Risk (VaR) also known is chance constraint are used in the newsvendor model as constraints, limiting the probability of particular event (in this case stock-out) happening. 
+Value-at-Risk (VaR) also known is chance constraint are used in the newsvendor model as constraints, limiting the probability of particular event (in this case stock-out) happening.
 
 VaR answers the question of how much one can lose with
 x% probability over a given time horizon.
@@ -138,20 +138,28 @@ u_plot(sales_data$Sales)
 
 ```
 
-
 Thresholds of 150 and 170 seem interesting, we can test for both.
 
 ```{r}
+# different_u <- list(u150=(150, u170= 170)
+
 u150 <- 150
 u170 <- 170
 
-cutter <- function(a_column, u_threshold){
-  sales_data$col <- cut(a_column,
+# Later have to use a mutate+ across + functions in order no to have code duplicates 
+sales_data$col1 <- cut(sales_data$Sales,
+               breaks = c(-Inf, u150, Inf),
+               labels = c("<=u", ">u")) 
+
+sales_data$col2 <- cut(sales_data$Sales,
+               breaks = c(-Inf, u170, Inf),
+               labels = c("<=u", ">u"))
+
+cutter <- function(a_column, u_threshold,a_name){
+  sales_data$hi <- cut(sales_data$Sales,
                breaks = c(-Inf, u_threshold, Inf),
                labels = c("<=u", ">u"))
 }
-
-cutter(sales_data$Sales, u150)
 
 sales_data %>%
   ggplot() +
@@ -163,22 +171,28 @@ sales_data %>%
              colour = "red") +
   guides(color = FALSE)
 
-
 cutter(sales_data$Sales, u170)
 
 sales_data %>%
   ggplot() +
   geom_line(aes(Day, Sales)) +
-  geom_point(aes(Day, Sales, color = col1)) +
+  geom_point(aes(Day, Sales, color = col2)) +
   scale_colour_manual(values = c('black', 'red')) +
   geom_hline(yintercept = u170,
              linetype = 2,
              colour = "red") +
   guides(color = FALSE)
 
+# The code below is to be removed later
+# for (i in seq_along(different_u)){
+#   cutter(sales_data$Sales, different_u[[i]])
+#   
+# }
+# cutter(sales_data$Sales, u150)
+
 ```
 
-Value at Risk
+Value at Risk.
 
 ```{r}
 
