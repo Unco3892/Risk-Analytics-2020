@@ -67,6 +67,58 @@ Expected shortfall or conditional or sometimes called conditional value-at-risk 
 TO BE CONTINUED
 
 # d)
+
+
+Poisson model.
+
+using maximum likelihood estimation for μ.
+
+Mean excess plot.
+
+`Number of exceedences / n`
+
+```{r}
+# Manual approach
+newsvendor_mod <- function(price,cost,unit_salvage){
+  salvage <- unit_salvage * cost
+  underage <- price - cost
+  overage <- cost - salvage
+  fractile <- underage / (overage + underage)
+  return(fractile)
+}
+
+cf_news <- newsvendor_mod(10,1,0.1)
+
+cf_news
+```
+
+
+```{r}
+library (MASS)
+sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
+
+qpois(cf_news,sales_poisson$estimate)
+
+
+-((log(1-cf_news))/sales_poisson$estimate)
+  
+# ppois(quant,sales_poisson$estimate, lower.tail= F)
+
+# 1- probability of a certain demand
+
+
+# qpois(cf_news,sales_poisson$estimate, lower.tail = F)
+
+# Ratio
+sales_poisson
+
+```
+
+
+# e)
+
+POT model.
+
 First we have to determine a value for `u`.
 
 ```{r,message = FALSE,warning=FALSE}
@@ -86,40 +138,52 @@ u_plot(sales_data$Sales)
 
 ```
 
-Poisson model.
 
-using maximum likelihood estimation for μ.
-
-Mean excess plot.
-
-`Number of exceedences / n`
+Thresholds of 150 and 170 seem interesting, we can test for both.
 
 ```{r}
-library (MASS)
-sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
+u150 <- 150
+u170 <- 170
 
-quant <- 0
+cutter <- function(a_column, u_threshold){
+  sales_data$col <- cut(a_column,
+               breaks = c(-Inf, u_threshold, Inf),
+               labels = c("<=u", ">u"))
+}
 
-ppois(quant,sales_poisson$estimate, lower.tail= F)
+cutter(sales_data$Sales, u150)
 
-# qpois(cf_news,sales_poisson$estimate, lower.tail = F)
+sales_data %>%
+  ggplot() +
+  geom_line(aes(Day, Sales)) +
+  geom_point(aes(Day, Sales, color = col1)) +
+  scale_colour_manual(values = c('black', 'red')) +
+  geom_hline(yintercept = u150,
+             linetype = 2,
+             colour = "red") +
+  guides(color = FALSE)
 
-# Ratio
-sales_poisson
 
-# quantity = 0
+cutter(sales_data$Sales, u170)
+
+sales_data %>%
+  ggplot() +
+  geom_line(aes(Day, Sales)) +
+  geom_point(aes(Day, Sales, color = col1)) +
+  scale_colour_manual(values = c('black', 'red')) +
+  geom_hline(yintercept = u170,
+             linetype = 2,
+             colour = "red") +
+  guides(color = FALSE)
 
 ```
 
-
-# e)
-
-POT model.
+Value at Risk
 
 ```{r}
 
-```
 
+```
 
 # f)
 
@@ -131,28 +195,3 @@ Back test as seen on the slides. We will go over this in more detail.
 
 
 
-Thresholds of 150 and 170 seem interesting, we can test for both.
-
-```{r}
-# u150 <- 150
-# u170 <- 170
-# 
-# cutter <- function(a_column, u_threshold){
-#   waiting$col <- cut(a_column,
-#                breaks = c(-Inf, u_threshold, Inf),
-#                labels = c("<=u", ">u")) 
-# }
-# 
-# cutter(u150)
-
-waiting %>%
-  ggplot() +
-  geom_line(aes(sales_data, Sales)) +
-  geom_point(aes(Date, Sales, color = col1)) +
-  scale_colour_manual(values = c('black', 'red')) +
-  geom_hline(yintercept = u1,
-             linetype = 2,
-             colour = "red") +
-  guides(color = FALSE)
-
-```
