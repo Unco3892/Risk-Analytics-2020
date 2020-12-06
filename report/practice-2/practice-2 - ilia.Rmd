@@ -164,6 +164,7 @@ cutter <- function(a_column, u_threshold,a_name){
 sales_data %>%
   ggplot() +
   geom_line(aes(Day, Sales)) +
+  geom_vline(xintercept =stockout, color= "blue") +
   geom_point(aes(Day, Sales, color = col1)) +
   scale_colour_manual(values = c('black', 'red')) +
   geom_hline(yintercept = u150,
@@ -176,6 +177,7 @@ cutter(sales_data$Sales, u170)
 sales_data %>%
   ggplot() +
   geom_line(aes(Day, Sales)) +
+  geom_vline(xintercept =stockout, color= "blue") +
   geom_point(aes(Day, Sales, color = col2)) +
   scale_colour_manual(values = c('black', 'red')) +
   geom_hline(yintercept = u170,
