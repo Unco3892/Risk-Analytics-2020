@@ -148,7 +148,7 @@ library (MASS)
 sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
 mu <- sales_poisson$estimate
 
-critical_fractile_poisson <- -((log(1-cf_news))/sales_poisson$estimate)
+critical_fractile_poisson <- -((log(1-cf_news))/mu)
   
 # ppois(quant,sales_poisson$estimate, lower.tail= F)
 # qpois(cf_news,sales_poisson$estimate)
@@ -260,7 +260,7 @@ n.sales <- sales_data %>%
 
 p.sales <- n.sales/length(sales_data$Sales)
 
-VAR <- mu + gpd_u170$estimate[1]/gpd_u170$estimate[2] * (((1-cf_news)/p.sales)^-gpd_u170$estimate[2]-1)
+VAR <- u170 + gpd_u170$estimate[1]/gpd_u170$estimate[2] * (((1-cf_news)/p.sales)^-gpd_u170$estimate[2]-1)
 
 VAR[[1]]
 
