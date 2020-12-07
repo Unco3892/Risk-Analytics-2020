@@ -325,8 +325,6 @@ confidence_line <- u2 + fit_pot_u2$estimate[1]/fit_pot_u2$estimate[2] * (((1-p)/
 
 confidence_line[[1]]
 
-# I think this is the right way
-fit_gev_maxima_monthly$estimate[1] + fit_pot_u2$estimate[1]/fit_pot_u2$estimate[2] * (((1-p)/p.survivors)^-fit_pot_u2$estimate[2]-1)
 ```
 
 We expect the confidence to be at `r confidence_line`.

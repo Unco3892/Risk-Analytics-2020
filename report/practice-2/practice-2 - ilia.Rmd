@@ -148,16 +148,16 @@ library (MASS)
 sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
 mu <- sales_poisson$estimate
 
-critical_fractile_poisson <- -((log(1-cf_news))/mu)
+#critical_fractile_poisson <- -((log(1-cf_news))/mu)
   
 # ppois(quant,sales_poisson$estimate, lower.tail= F)
-# qpois(cf_news,sales_poisson$estimate)
+critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
 # qpois(cf_news,sales_poisson$estimate, lower.tail = F)
 
 # Ratio
 
 ```
-After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile, which is given by the following formula : q = -ln(1- `r cf_news`)/`r mu`. According to this model, the estimated critical fractile is `r critical_fractile_poisson`
+After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile: according to this model, the estimated critical fractile is `r critical_fractile_poisson`.
 
 # e)
 
