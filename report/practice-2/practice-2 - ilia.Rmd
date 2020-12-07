@@ -26,9 +26,59 @@ ggplot(data = sales_data, aes(x = Day, y = Sales)) +
 ```
 The red line shows when the observed number of sales goes to zero, essentially the extreme of the sales, there are also other instances where it nears to zero however we ignore them for simplicity sake. We run of stock in these cases.
 
+From the graph above, we can also notice that right before going out of stock, the sales are extremely high. When looking at the first block, from day 0 to day 330 which is the first stockout, the sales data are distributes as follows:
+```{r}
+sales_data %>% 
+  arrange(Sales)
+
+sales_data %>% 
+  filter(Day < 330) %>% 
+  ggplot(aes(x=Day, y = Sales))+
+  geom_point() +
+  labs(title = "Sales unit in the first 330 days")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+One can clearly notice that there is a positive tren in the sales, which the vendors were not able to forecast hence the stockout at Day 330. 
+
+We can now look at what happened between the first and the second stockout.
+```{r}
+sales_data %>% 
+  arrange(Sales)
+
+sales_data %>% 
+  filter(Day > 330 & Day < 383) %>% 
+  ggplot(aes(x=Day, y = Sales))+
+  geom_point() +
+  labs(title = "Sales unit in the between the 1st and the 2nd stockout")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+One can notice that following the first stockout there isn't a particular structure in the sales data, it looks like the sales are random. Moreover, the stockout lasted 2 days. Hence, we can say that the second stockout is probably due to mismanagement following the initial positive trend of the data. 
+
+We can now observe what the sales data between day second and thrid time they went out of stock:
+
+```{r}
+sales_data %>% 
+  arrange(Sales)
+
+sales_data %>% 
+  filter(Day > 394 & Day < 696) %>% 
+  ggplot(aes(x=Day, y = Sales))+
+  geom_line() +
+  labs(title = "Sales unit in the between the 2nd and the 3rd stockout")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+Looking at the sales data distribution in the above graph, one can notice that n the one hand the Sales demand until Day 600 seems kind of linear, but on the other hand following this day it looks like there is once again a positive trend. 
+
+Going over each block of data is not necessary as the observations above are already conclusive: the vendors go out of stock when there is an increasing demand. The sellers were probably not able to forecast the positive trends and to manage the inventory given the increasing sales, leading them to stockout.
+
+
 # b)
 Newsvendor model.
 
+Knowing the newsvendor model we can easily compute p:
 ```{r}
 # Manual approach
 newsvendor_mod <- function(price,cost,unit_salvage){
@@ -54,21 +104,20 @@ sd_s <- sd(sales_data$Sales)
 Newsboy(m= mean_s,sd= sd_s,p=10,c=1,s=0.1)
 ```
 
+Hence, the critical fractile will be computed as q = F^-1(`r cf_news`). 
+# PIA: is it possible to write the equation in a nicer way?
+
 # c)
-Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening.
+Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening. In fact, we can say that the critical fractile of the newsvendor model is the equivalent to Value-at-Risk with level `r cf_news`: we don't want to go beyond this value to avoid entering the extreme values. 
 
 VaR answers the question of how much one can lose with
 x% probability over a given time horizon.
 
 In this case, we have much more underage cost than overage giving us a ratio of `r cf_news`.
 
-Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'
-
-TO BE CONTINUED
+Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'. More concrectly, one could compute the Value-at-Risk at a level of  `r cf_news`, and compute the expected shortfall which indicates the average value of sales when we enter the etremes of the distribution, hence when the sales are extremely high which, as we saw in the beginning of this analysis, is likely to lead to a stockout.
 
 # d)
-
-
 Poisson model.
 
 using maximum likelihood estimation for μ.
@@ -92,28 +141,23 @@ cf_news <- newsvendor_mod(10,1,0.1)
 cf_news
 ```
 
+Using the proposed function, we can fit the Poisson model to our data an compute the estimated μ by using the MLE.
 
-```{r}
+```{r, warning=FALSE}
 library (MASS)
 sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
+mu <- sales_poisson$estimate
 
-qpois(cf_news,sales_poisson$estimate)
-
-
--((log(1-cf_news))/sales_poisson$estimate)
+critical_fractile_poisson <- -((log(1-cf_news))/sales_poisson$estimate)
   
 # ppois(quant,sales_poisson$estimate, lower.tail= F)
-
-# 1- probability of a certain demand
-
-
+# qpois(cf_news,sales_poisson$estimate)
 # qpois(cf_news,sales_poisson$estimate, lower.tail = F)
 
 # Ratio
-sales_poisson
 
 ```
-
+After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile, which is given by the following formula : q = -ln(1- `r cf_news`)/`r mu`. According to this model, the estimated critical fractile is `r critical_fractile_poisson`
 
 # e)
 
@@ -193,11 +237,32 @@ sales_data %>%
 # cutter(sales_data$Sales, u150)
 
 ```
+In order to define which threshold is the best, we are going to fit a GPD to the difference between the extremes and the thresholds, then use the AIC criteria to define the best model.
+
+```{r}
+
+gpd_u150 <- fpot(sales_data$Sales, threshold = u150, model = c("gpd"))
+gpd_u170 <- fpot(sales_data$Sales, threshold = u170, model = c("gpd"))
+
+stats::AIC(gpd_u150)
+stats::AIC(gpd_u170)
+```
+
+The AIC is lower when taking the threshold at 170. Thus, we will use this model for the next analysis. 
 
 Value at Risk.
 
 ```{r}
+n.sales <- sales_data %>%
+  filter(Sales > u170) %>%
+  summarize(n = n()) %>%
+  pull(n)
 
+p.sales <- n.sales/length(sales_data$Sales)
+
+VAR <- mu + gpd_u170$estimate[1]/gpd_u170$estimate[2] * (((1-cf_news)/p.sales)^-gpd_u170$estimate[2]-1)
+
+VAR[[1]]
 
 ```
 
