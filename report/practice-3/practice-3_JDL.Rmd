@@ -1,0 +1,51 @@
+---
+title: "report"
+output: html_document
+---
+
+```{r, message=FALSE, warning=FALSE}
+source(here::here("scripts/setup.R"))
+```
+
+
+```{r}
+sales_10_adj <-
+  read.csv(here::here("data/sales_10_adjusted.csv"))
+```
+
+## a)
+
+
+## b)
+
+
+
+## d)
+### .i
+```{r}
+thresholds <- numeric(10)
+
+for (i in 1:10) {
+  thresholds[i] <- quantile(sales_10_adj[,i], 0.9)
+}
+
+
+models <- list()
+
+for (i in 1:10) {
+  models[[i]] <- evd::fpot(sales_10_adj[,i], thresholds[i])
+}
+
+unif_transformed <- sapply(1:10, function (i) {
+  data <-
+    dgpd(
+      sales_10_adj[, i],
+      loc = thresholds[i],
+      scale = models[[i]]$estimate[1],
+      shape = models[[i]]$estimate[2]
+    )
+})
+```
+
+
+
