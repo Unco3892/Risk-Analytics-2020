@@ -278,7 +278,7 @@ inverse_transform <- function(u, ecdf, quantile_function, p, threshold, scale, s
 simulated_inversed <- sapply(1:10, function (i) {
 inverse_transform(u = simulated[,i], 
                   ecdf = uniformised[[i]]$ecdf,
-                  quantile_function = evd::rgpd,
+                  quantile_function = evd::qgpd,
                   p = uniformised[[i]]$prop,
                   threshold = thresholds[i],
                   scale = fit_pot[[i]]$estimate[1],
