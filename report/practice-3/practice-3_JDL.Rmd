@@ -94,13 +94,17 @@ longPval<-melt(pvalue)
 
 longPval %>%
   filter(!is.na(value)) %>%
+  arrange(desc(value)) %>%
+      mutate(pvalue = case_when(
+      value >= 0.05 ~ "> 5%",
+      value < 0.05 ~ "< 5%")) %>%
   ggplot(aes(x = factor(Var1), y = factor(Var2))) +
-  geom_raster(aes(fill=value)) +
-  scale_fill_gradient(low="grey90", high="blue", breaks = c(0, 0.05, 1)) +
-  labs(x="product", y="product", title="Pval", fill = "P-Value")
+  geom_raster(aes(fill=pvalue)) +
+  labs(x="product", y="product", title="Tail Dependence Test", fill = "P-Value")
 ```
 
 Null hypothesis is tail dependence!
+Red = reject H0 = indep.
 
 High tail dependence for extreme values :
 ```{r}
@@ -116,7 +120,7 @@ chiplot(cbind(sales_10_adj[,2], sales_10_adj[,10]), which = 2)
 ## c)
 
 The Gaussian copula is asymptotically independent in both upper and lower tails.
-Since a the majority amount of pairs seems inddependent in upper tail, the Gaussian copula could be appropriate.
+Since a majority of pairs seems dependent in upper tail, the Gaussian copula seems inappropriate.
 
 ## d)
 ### .i
@@ -252,19 +256,20 @@ fit_results$AIC[4] <- stats::AIC(fit_t)
 
 
 ```{r}
-fit_results
+fit_results %>% arrange(AIC)
 ```
 
 ### .iii
 
 ```{r}
 simulated <- rCopula(1913, tCopula(param = rho, dim = 10, df = df))
+# simulated <- rCopula(1913, normalCopula(fit_results$param1[1], dim = 10))
+# simulated <- rCopula(1913, gumbelCopula(fit_results$param1[2], dim = 10))
+# simulated <- rCopula(1913, claytonCopula(fit_results$param1[3], dim = 10))
 ```
 
 ```{r}
 inverse_transform <- function(u, ecdf, quantile_function, p, threshold, scale, shape) {
-  # ...: arguments to quantile_function
-  # Basically, undo the transformations (1-2) above
   above <- u > 1 - p
   original_scale <- numeric(length = length(u))
   original_scale[!above] <- quantile(ecdf, u[!above] / (1 - p))
@@ -288,47 +293,55 @@ inverse_transform(u = simulated[,i],
 ```
 
 ### iv
+
+VaR of the sum
 ```{r}
-#VaR of the sum
+#Generated + retransformed
 S <- rowSums(simulated_inversed)
 quantile(S, 0.95)
+```
 
+
+```{r}
 #Original Data
 quantile(rowSums(sales_10_adj), 0.95)
 ```
 
+Sum of the VaR
+```{r}
+#Generated + retransformed
+sum(apply(simulated_inversed, 2, quantile, 0.95))
+```
+
 
 ```{r}
-# Sum of the VaR
-sum(apply(simulated_inversed, 2, quantile, 0.95))
-
 # original data
 sum(apply(sales_10_adj, 2, quantile, 0.95))
 ```
 
-```{r}
-fit_simulated <- evd::fpot(S, quantile(S, 0.9))
+<!-- ```{r} -->
+<!-- fit_simulated <- evd::fpot(S, quantile(S, 0.9)) -->
 
 
-u <- fit_simulated$threshold
-p <- length(fit_simulated$exceedances)/length(S)
+<!-- u <- fit_simulated$threshold -->
+<!-- p <- length(fit_simulated$exceedances)/length(S) -->
 
 
-VAR <- u + fit_simulated$estimate[1]/fit_simulated$estimate[2] * (((1-0.95)/p)^-fit_simulated$estimate[2]-1)
+<!-- VAR <- u + fit_simulated$estimate[1]/fit_simulated$estimate[2] * (((1-0.95)/p)^-fit_simulated$estimate[2]-1) -->
 
-VAR[[1]]
-```
+<!-- VAR[[1]] -->
+<!-- ``` -->
 
 
-```{r message=FALSE, warning=FALSE}
+<!-- ```{r message=FALSE, warning=FALSE} -->
 
-VaR <- numeric(10)
+<!-- VaR <- numeric(10) -->
 
-for (i in 1:10) {
-mod <- QRM::fit.GPD(simulated_inversed[,i], threshold = quantile(simulated_inversed[,i], 0.9))
-VaR[i] <- QRM::RiskMeasures(mod, c(0.95))[2]
-}
+<!-- for (i in 1:10) { -->
+<!-- mod <- QRM::fit.GPD(simulated_inversed[,i], threshold = quantile(simulated_inversed[,i], 0.9)) -->
+<!-- VaR[i] <- QRM::RiskMeasures(mod, c(0.95))[2] -->
+<!-- } -->
 
-sum(VaR)
-```
+<!-- sum(VaR) -->
+<!-- ``` -->
 
