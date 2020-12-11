@@ -48,7 +48,8 @@ longChi_bar %>%
   labs(
     x = "product U",
     y = "product V",
-    title = "Tail dependence for each pair of products at the 90% quantile",
+    title = "Tail dependence for each pair of products",
+    subtitle = "90% Quantile",
     fill = unname(latex2exp::TeX("$\\bar{\\chi}$"))
   )
 ```
@@ -92,19 +93,24 @@ longPval<-melt(pvalue)
 longPval %>%
   filter(!is.na(value)) %>%
   arrange(desc(value)) %>%
-      mutate(pvalue = case_when(
-      value >= 0.05 ~ "> 5%",
-      value < 0.05 ~ "< 5%")) %>%
+  mutate(pvalue = case_when(value >= 0.05 ~ "> 5%",
+                            value < 0.05 ~ "< 5%")) %>%
   ggplot(aes(x = factor(Var1), y = factor(Var2))) +
-  geom_tile(aes(fill=pvalue), linetype = 1, colour = "grey50") +
-  labs(x="product", y="product", title="Tail dependence test for each pair of products at the 90% quantile", fill = "P-Value")
+  geom_tile(aes(fill = pvalue), linetype = 1, colour = "grey50") +
+  labs(
+    x = "product U",
+    y = "product V",
+    title = "Tail dependence test for each pair of products",
+    fill = "P-Value",
+    subtitle = "90% Quantile"
+  )
 ```
 
 We may also apply a tail dependence test for each pair of products, the null hypothesis being the tail dependence.
 Figure \@ref(fig:pavalchi) shows that a majority of pair of products may be considered tail dependent since their p-value is superior to 5% for a probability thresold of 90%.
 
 ```{r chiplothigh, echo=FALSE}
-chiplot(cbind(sales_10_adj[,2], sales_10_adj[,3]), which = 2, main2 =  unname(latex2exp::TeX(" Chi Bar plot for product 2 & 3")))
+chiplot(cbind(sales_10_adj[,2], sales_10_adj[,3]), which = 2, main2 = "Chi Bar plot for product 2 & 3")
 ```
 
 Chi Bar plot may also be usefull to detect tail dependency. As shown on Graph \@ref(fig:chiplothigh) , products 2 & 3 look strongly dependent in the upper tail.
