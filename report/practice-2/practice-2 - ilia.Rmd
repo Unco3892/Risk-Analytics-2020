@@ -109,12 +109,7 @@ Hence, the critical fractile will be computed as q = F^-1(`r cf_news`).
 # PIA: is it possible to write the equation in a nicer way?
 
 # c)
-Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening. In fact, we can say that the critical fractile of the newsvendor model is the equivalent to Value-at-Risk with level `r cf_news`: we don't want to go beyond this value to avoid entering the extreme values. 
-
-VaR answers the question of how much one can lose with
-x% probability over a given time horizon.
-
-In this case, we have much more underage cost than overage giving us a ratio of `r cf_news`.
+Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening. In fact, we can say that the critical fractile of the newsvendor model is the equivalent the level of the Value-at-Risk  (`r cf_news`): we don't want to go beyond this value to avoid entering the extreme values. 
 
 Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'. More concrectly, one could compute the Value-at-Risk at a level of  `r cf_news`, and compute the expected shortfall which indicates the average value of sales when we enter the extremes of the distribution, hence when the sales are extremely high which, as we saw in the beginning of this analysis, is likely to lead to a stockout.
 
@@ -149,10 +144,7 @@ critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
 After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile: according to this model, the estimated critical fractile is `r critical_fractile_poisson`.
 
 # e)
-
-POT model.
-
-First we have to determine a value for `u`.
+We are now going to compute a POT model. First we have to define the threshold.
 
 ```{r,message = FALSE,warning=FALSE}
 u_plot <- function (a_column) {
