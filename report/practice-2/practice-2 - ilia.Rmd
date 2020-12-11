@@ -122,8 +122,6 @@ Poisson model.
 
 using maximum likelihood estimation for μ.
 
-Mean excess plot.
-
 `Number of exceedences / n`
 
 ```{r}
@@ -240,12 +238,21 @@ sales_data %>%
 In order to define which threshold is the best, we are going to fit a GPD to the difference between the extremes and the thresholds, then use the AIC criteria to define the best model.
 
 ```{r}
+u120 <- 120
+u190 <- 120
+
+gpd_u120 <- fpot(sales_data$Sales, threshold = u120, model = c("gpd"))
 
 gpd_u150 <- fpot(sales_data$Sales, threshold = u150, model = c("gpd"))
 gpd_u170 <- fpot(sales_data$Sales, threshold = u170, model = c("gpd"))
 
+gpd_u190 <- fpot(sales_data$Sales, threshold = u190, model = c("gpd"))
+
+
+stats::AIC(gpd_u120)
 stats::AIC(gpd_u150)
 stats::AIC(gpd_u170)
+stats::AIC(gpd_u190)
 ```
 
 The AIC is lower when taking the threshold at 170. Thus, we will use this model for the next analysis. 
@@ -270,9 +277,106 @@ VAR[[1]]
 
 Back test as seen on the slides. We will go over this in more detail.
 
+## d
 ```{r}
+sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
+mu <- sales_poisson$estimate
+critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
+```
+
+```{r}
+# We create a test set that we can use
+sales_test <- sales_data %>% tail(300)
+
+# Create a function for our models
+sales_risk <- function(u_threshold, a_dataframe, a_column, alpha) {
+  # filtering for observations above a threshold
+  sales_above <-
+    a_dataframe %>% filter({
+      {
+        a_column
+      }
+    } > u_threshold) %>% pull({
+      {
+        a_column
+      }
+    })
+  # fitting the gpd
+  sales_gpd <- sales_above %>%
+    fpot(., threshold = u_threshold, model = c("gpd"))
+  
+  # This creates problems and has to be resolved
+  fbar <- length(sales_above) / nrow(sales_test)
+  
+  # we can extract the the shape, scale and use the alpha that we would like
+  u_threshold + (sales_gpd$estimate[["scale"]] / sales_gpd$estimate[["shape"]]) *
+    (((1 - alpha) / fbar) ^ -sales_gpd$estimate[["shape"]] - 1)
+  }
+
+# applying it as an example
+sales_risk(120, sales_data, Sales, cf_news)
+
+# loop over for calculating the VAR of 365 days
+train_size <- 365
+risk_values <- seq_along(sales_test$Sales)
+n_above <- nrow(sales_data)+1
+
+for (i in seq_along(sales_test$Sales)) {
+  # chosen window
+  window <- sales_data %>% slice((n_above - i - train_size):(n_above - i))
+  # calculating the value at risk
+  risk_values[i] <- sales_risk(120, window, Sales, cf_news)
+  # Bernoulli violations
+  risk_values[i] <- ifelse(risk_values[i] > sales_test$Sales[i], 0, 1)
+}
+
+# theoretical violations
+sales_theory <-nrow(sales_test) * (1-cf_news)
+
+# summing up violations
+sales_violations <- sum(risk_values)
+
 
 ```
+
+We can also do use the 90th of the data for the threshold.
+```{r}
+train_size <- 365
+risk_values <- seq_along(sales_test$Sales)
+n_above <- nrow(sales_data)+1
+threshold_record <- risk_values
+  
+for (i in seq_along(sales_test$Sales)) {
+  # chosen window
+  window <- sales_data %>% slice((n_above - i - train_size):(n_above - i))
+  # calculating the value at risk
+  threshold <- quantile(window$Sales, 0.9)
+  # we record the threshold we have chosen
+  threshold_record[i] <- threshold
+  risk_values[i] <- sales_risk(threshold, window, Sales, cf_news)
+  # Bernoulli violations
+  risk_values[i] <- ifelse(risk_values[i] > sales_test$Sales[i], 0, 1)
+}
+
+# theoretical violations
+sales_theory <-nrow(sales_test) * (1-cf_news)
+
+# summing up violations
+sales_violations <- sum(risk_values)
+
+
+# Naturally our critical fractile is the alpha here, right?
+prop.test((nrow(sales_test)-sales_violations),nrow(sales_test), cf_news)
+
+prop.test(sales_violations,nrow(sales_test), p=1-cf_news)
+
+# Or the method below
+binom.test(sales_violations, nrow(sales_test), p=1-cf_news)
+
+```
+
+## f
+d and e
 
 
 
