@@ -120,12 +120,7 @@ Hence, the critical fractile will be computed as q = F^-1(`r cf_news`).
 # PIA: is it possible to write the equation in a nicer way?
 
 # c)
-Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening. In fact, we can say that the critical fractile of the newsvendor model is the equivalent to Value-at-Risk with level `r cf_news`: we don't want to go beyond this value to avoid entering the extreme values. 
-
-VaR answers the question of how much one can lose with
-x% probability over a given time horizon.
-
-In this case, we have much more underage cost than overage giving us a ratio of `r cf_news`.
+Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening. In fact, we can say that the critical fractile of the newsvendor model is the equivalent the level of the Value-at-Risk  (`r cf_news`): we don't want to go beyond this value to avoid entering the extreme values. 
 
 Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'. More concrectly, one could compute the Value-at-Risk at a level of  `r cf_news`, and compute the expected shortfall which indicates the average value of sales when we enter the extremes of the distribution, hence when the sales are extremely high which, as we saw in the beginning of this analysis, is likely to lead to a stockout.
 
@@ -155,23 +150,12 @@ Using the proposed function, we can fit the Poisson model to our data an compute
 library (MASS)
 sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
 mu <- sales_poisson$estimate
-
-#critical_fractile_poisson <- -((log(1-cf_news))/mu)
-  
-# ppois(quant,sales_poisson$estimate, lower.tail= F)
 critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
-# qpois(cf_news,sales_poisson$estimate, lower.tail = F)
-
-# Ratio
-
 ```
 After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile: according to this model, the estimated critical fractile is `r critical_fractile_poisson`.
 
 # e)
-
-POT model.
-
-First we have to determine a value for `u`.
+We are now going to compute a POT model. First we have to define the threshold.
 
 ```{r,message = FALSE,warning=FALSE}
 u_plot <- function (a_column) {
@@ -222,7 +206,9 @@ sales_data %>%
   geom_hline(yintercept = u150,
              linetype = 2,
              colour = "red") +
-  guides(color = FALSE)
+  guides(color = FALSE) +
+  labs (title = "Sales above the threshold of 150 are highlighted in red",
+        subtitle = "Blue lines represent day when the sales are 0")
 
 cutter(sales_data$Sales, u170)
 
@@ -235,7 +221,9 @@ sales_data %>%
   geom_hline(yintercept = u170,
              linetype = 2,
              colour = "red") +
-  guides(color = FALSE)
+  guides(color = FALSE) + 
+  labs (title = "Sales above the threshold of 170 are highlighted in red",
+        subtitle = "Blue lines represent day when the sales are 0")
 
 # The code below is to be removed later
 # for (i in seq_along(different_u)){
@@ -249,33 +237,28 @@ In order to define which threshold is the best, we are going to fit a GPD to the
 
 ```{r}
 u120 <- 120
-u190 <- 120
+u190 <- 170
 
-gpd_u120 <- fpot(sales_data$Sales, threshold = u120, model = c("gpd"))
 
 gpd_u150 <- fpot(sales_data$Sales, threshold = u150, model = c("gpd"))
 gpd_u170 <- fpot(sales_data$Sales, threshold = u170, model = c("gpd"))
 
-gpd_u190 <- fpot(sales_data$Sales, threshold = u190, model = c("gpd"))
-
-
-plot(gpd_u150, which= 1)
-
+par(mfrow = c(2,2))
+plot(gpd_u150, which = 1)
+plot(gpd_u170, which = 1)
 ```
 
-The AIC is lower when taking the threshold at 170. Thus, we will use this model for the next analysis. 
-
-Value at Risk.
+Comparing the pp-plots of the two models, we decide to use the threshold of 150 as it provides better results. Thus, we will use the model with this threshold to compute the Value at Risk.
 
 ```{r}
 n.sales <- sales_data %>%
-  filter(Sales > u170) %>%
+  filter(Sales > u150) %>%
   summarize(n = n()) %>%
   pull(n)
 
 p.sales <- n.sales/length(sales_data$Sales)
 
-VAR <- u170 + gpd_u170$estimate[1]/gpd_u170$estimate[2] * (((1-cf_news)/p.sales)^-gpd_u170$estimate[2]-1)
+VAR <- u150 + gpd_u150$estimate[1]/gpd_u150$estimate[2] * (((1-cf_news)/p.sales)^-gpd_u150$estimate[2]-1)
 
 VAR[[1]]
 

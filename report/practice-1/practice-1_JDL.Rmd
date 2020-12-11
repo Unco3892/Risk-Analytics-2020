@@ -13,16 +13,21 @@ source(here::here("scripts/setup.R"))
 
 
 ```{r, warning=FALSE, message=FALSE}
-waiting <- read_csv(here::here("data/waiting.csv"))
+waiting <- read.csv(here::here("data/waiting.csv"))
 ```
 
 *Graph* displays the daily waiting times period that the Data covers. It is difficult to notice any seasonality or cyclic patterns in the extreme waiting times.
 
 ```{r, fig.asp=.2}
+waiting$Date <- as.Date(waiting$Date)
+
 waiting %>%
   ggplot(aes(Date, Average.Wait.Seconds)) +
   geom_line() +
-  geom_point()
+  geom_point() +
+  labs (title = "Average daily waiting time",
+        x = "Date",
+        y = "Time [seconds]")
 ```
 
 As shown on *graph* and on *table*, Monday, Tuesday and Wednesday are the days of the week tht present the highests extreme values. We can also notice that even if Friday has the highest average waiting time, its maximum value is the lowest.
@@ -36,7 +41,9 @@ waiting %>%
              Q1 = quantile(Average.Wait.Seconds, .25),
              Avg = mean(Average.Wait.Seconds), 
              Q3 = quantile(Average.Wait.Seconds, .75),
-             Max = max(Average.Wait.Seconds))
+             Max = max(Average.Wait.Seconds)) %>% 
+  kable(caption = "Data summary") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 ```{r}
@@ -46,8 +53,9 @@ waiting %>%
   ggplot(aes(Average.Wait.Seconds, Weekday)) +
   geom_boxplot() +
   coord_flip() +
-  ylab("") +
-  xlab("Average waiting time (sec)")
+  labs (title = "Average waiting time per day",
+        x = "Day",
+        y = "Time [seconds]")
 ```
 
 ## b) 
@@ -64,14 +72,16 @@ mean <- mean(waiting$Average.Wait.Seconds)
 sd <- sd(waiting$Average.Wait.Seconds)
 
 upper_limit <- qnorm(p, mean, sd)
-upper_limit
+upper_limit %>% 
+  kable(caption = "Upper Limit") %>% 
+  kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 *Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theorical values under the assumption of a normal distribution. This suggests that the tails are heavy.
 ```{r}
 qqnorm(scale(waiting$Average.Wait.Seconds))
 qqline(scale(waiting$Average.Wait.Seconds))
-hist(waiting$Average.Wait.Seconds)
+hist(waiting$Average.Wait.Seconds, main = "Histogram", xlab = "Time [seconds]") 
 ```
  
  
@@ -98,17 +108,17 @@ tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
                   category=gl(2,36))
 
 plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
-                linetype=4, colour="red")
+                linetype=4, colour="red") + labs(x = "Date", y = "Time [seconds]", title = "Data division using the Block Maxima", subtitle = "Division on a monthly basis")
 ```
 
 
 ```{r}
 # per week
 tmp <- data.frame(x=rep(seq(as.Date(0, origin="2017-01-01"),
-                            length=102, by="1 week"), 2))
+                            length=96, by="1 week"), 2))
 
 plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
-                linetype=4, colour="red")
+                linetype=4, colour="red") + labs(x = "Date", y = "Time [seconds]", title = "Data division using the Block Maxima", subtitle = "Division on a weekly basis")
 ```
 
 
@@ -130,14 +140,22 @@ maxima_weekly <- waiting %>%
 waiting %>%
   ggplot(aes(Date, Average.Wait.Seconds)) +
   geom_line() +
-  geom_point(aes(Date, Average.Wait.Seconds), data = maxima_monthly, color = "red")
+  geom_point(aes(Date, Average.Wait.Seconds), data = maxima_monthly, color = "red") +
+  labs (x = "Date", 
+        y = "Time [seconds]", 
+        title = "For each block, the red point represents its maxima", 
+        subtitle = "Division by month")
 ```
 
 ```{r}
 waiting %>%
   ggplot(aes(Date, Average.Wait.Seconds)) +
   geom_line() +
-  geom_point(aes(Date, Average.Wait.Seconds), data = maxima_weekly, color = "red")
+  geom_point(aes(Date, Average.Wait.Seconds), data = maxima_weekly, color = "red") +
+  labs (x = "Date", 
+        y = "Time [seconds]", 
+        title = "For each block, the red point represents its maxima", 
+        subtitle = "Division by week")
 ```
 
 ### Peaks-over-threshold approach
@@ -150,7 +168,6 @@ mrlplot(waiting$Average.Wait.Seconds,umin = min(waiting$Average.Wait.Seconds), u
 tlim <- c(81,1182)
 tcplot(waiting$Average.Wait.Seconds, tlim = c(81,1100), std.err = FALSE)
 
-# we take a threshold of 800
 ```
 Looking at the plot, we believe that the best threshold is at a value of 800. However, we are going to see if this holds true by analyzing the results in case we use a threshold of 600.
 
@@ -178,7 +195,11 @@ waiting %>%
   geom_hline(yintercept = u1,
              linetype = 2,
              colour = "red") +
-  guides(color = FALSE)
+  guides(color = FALSE) +
+  labs (x = "Date", 
+        y = "Time [seconds]", 
+        subtitle = "In red, the observation above the threshold u = 600",
+        title = "Average daily waiting time")
 ```
 
 
@@ -192,7 +213,11 @@ waiting %>%
   geom_hline(yintercept = u2,
              linetype = 2,
              colour = "red") +
-  guides(color = FALSE)
+  guides(color = FALSE) +
+    labs (x = "Date", 
+        y = "Time [seconds]", 
+        subtitle = "In red, the observation above the threshold u = 800",
+        title = "Average daily waiting time")
 ```
 
 We are going to fit a GPD on the difference between the observations highleted in the red dots and the thresholds. Once, using a threshold of 800 and then, of 600.
@@ -206,15 +231,11 @@ Monthly :
 ```{r, warning = FALSE, message = FALSE}
 # fitting the GEV to the maxima in order to have the location, scale and shape parameterss
 fit_gev_maxima_monthly <- fgev(maxima_monthly$Average.Wait.Seconds)
-# evd_profile <- profile(gev_maxima)
-# M1JP <- profile2d(fit_evd, evd_profile, which = c("scale", "shape"))
-# plot(M1JP)
-
 fit_gev_maxima_monthly
 shape <- fit_gev_maxima_monthly$estimate[3]
 ```
 
-The estimates of the GEV show that the latter is a Weibull: indeed, the shape parameter is negative `r shape`.
+The estimates of the GEV show that the latter is a Weibull: indeed, the shape parameter is negative (`r shape`).
 
 
 ```{r}
@@ -225,13 +246,7 @@ plot(fit_gev_maxima_monthly)
 Looking at the plot, we remark that if on the one hand the probability plot is not well fitted, on the other hand the observations almost perfectly fit the straight line in the qq-plot. Moreover, the Return Level Plot shows a 
 function that is concave: this is a consequence of the negative shape parameter. 
 
-```{r}
-# stats::AIC(fit_gev_maxima)
-```
-
 We are now going to make the same analysis but this time using the weekly maxima.
-
-Weekly
 
 ```{r, warning = FALSE, message = FALSE}
 fit_gev_maxima_weekly <- fgev(maxima_weekly$Average.Wait.Seconds)
@@ -243,22 +258,15 @@ Once again, we have a shape parameter that is negative, meaning that we are stil
 ```{r}
 par(mfrow = c(2,2))
 plot(fit_gev_maxima_weekly)
-```
-
-Using weekly data it comes without suprise that the number of maxima is higher compared to the previous case. We can observe that the observations almost perfectly fit the lines of our plots, showing that this is a good model. In order to compare the models and select the best one, we use the AIC criteria:
-
-```{r}
-AIC_monhtly <- stats::AIC(fit_gev_maxima)
-AIC_weekly <- AIC(fit_gev_maxima_weekly)
 
 ```
 
-For the model using the montly maxima, the AIC is `r AIC_monthly`, while the model using the weekly data has an AIC of `r AIC_weekly`. Hence, the first model is better as its AIC is lower.
+Comparing the results between monthly blocks and weekly ones, we can clearly see that the results are better in the latter. Indeed, points are almost perfectly fitted for both the probability and quantile plot, which was not the case when we fitted the GEV to the monthly maxima. Thus, we can conclude that this for the block maxima approach the maxima from weekly blocks should be used.
 
 ### POT
 
 We are now going to fit a model using the Peak-over-threshold approach. The function we use for this model is fpot, which fits the difference between the observations and the threshold to a GPD. 
-As we saw previously, two thresholds are likely to be interesting for the modeling: the first one is a threhsold u1 of 800, and the second is at 600. Like we did in the previous analysis with the block maxima, we are going to analyse both and select the best model using the AIC criteria.
+As we saw previously, two thresholds are likely to be interesting for the modeling: the first one is a threhsold u1 of 800, and the second is at 600. Like we did in the previous analysis with the block maxima, we are going to analyse both and select the best model.
 
 
 ```{r}
@@ -276,62 +284,44 @@ The plots above are the results of the analysis using a threhsold of `r u1`. We 
 We are now going to do the same analysis using a threshold of `r u2`
 
 ```{r}
-# stats::AIC(fit_pot_u1)
-```
-
-
-```{r}
 par(mfrow=c(2,2))
 plot(fit_pot_u2)
 ```
 
-Naturally, having a higher threhsold the number of observations is lower. Hoever, the model seems to be well fitted.
-
-Since by looking at the plot both models are satisifying, we use the AIC criteria to choose the best one.
-
-```{r}
-AIC_u2 <- stats::AIC(fit_pot_u2)
-AIC_u1 <- AIC(fit_pot_u1)
-```
-The models using a threshold of `r u1` and  `r u2` have an AIC of respectively  `r AIC_u1` and  `r AIC_u2`. Hence, we are going to select the model with the threshold of `r u2`.
+Naturally, having a higher threhsold the number of observations is lower. Looking at the results, we can conclude that we should select the threshold `r u1` since it allows having a better pp-plot and qq-plot.
 
 ## e) 
 ### Block Maxima
 
-One year return level corresponds, in our dataset, to 250 days.
+Even if our dataset only consider the working days, we should use 365 days to compute the one year return level.
 
 ```{r}
 # return level block maxima:
-return_level_maxima <- fit_gev_maxima_monthly$estimate[1] + (fit_gev_maxima_monthly$estimate[2]/fit_gev_maxima_monthly$estimate[3])*(((-log(1-1/250))^-fit_gev_maxima_monthly$estimate[3])-1)
+return_level_maxima <- fit_gev_maxima_weekly$estimate[1] + (fit_gev_maxima_weekly$estimate[2]/fit_gev_maxima_weekly$estimate[3])*(((-log(1-1/365))^-fit_gev_maxima_weekly$estimate[3])-1)
 
 return_level <- return_level_maxima[[1]]
 return_level
 ```
 
-After one year, we expect the Average waiting time in seconds to be of `r return_level`.
+After one year, we expect the Average waiting time in seconds to be of `r return_level` seconds. 
 
 ### POT
 
 Confidence Line
 ```{r}
 n.survivors <- waiting %>%
-  filter(Average.Wait.Seconds > u2) %>%
+  filter(Average.Wait.Seconds > u1) %>%
   summarize(n = n()) %>%
   pull(n)
 
 p.survivors <- n.survivors/length(waiting$Average.Wait.Seconds)
 
-confidence_line <- u2 + fit_pot_u2$estimate[1]/fit_pot_u2$estimate[2] * (((1-p)/p.survivors)^-fit_pot_u2$estimate[2]-1)
+confidence_line <- u1 + fit_pot_u1$estimate[1]/fit_pot_u1$estimate[2] * (((1-p)/p.survivors)^-fit_pot_u1$estimate[2]-1)
 
 confidence_line[[1]]
 
 ```
 
-We expect the confidence to be at `r confidence_line`.
-```{r}
-# test <- waiting %>% 
-#   group_by(year(ymd(Date)), week(ymd(Date))) %>%
-#   mutate(Q = Average.Wait.Seconds - quantile(Average.Wait.Seconds, .9)) %>%
-#   filter(Q > 0)
-```
+We expect the confidence line to be at `r confidence_line`.
+
 
