@@ -51,3 +51,9 @@ div#TOC li {
     background-repeat:none;
     background-position:0;
 }
+
+.main-content table th {
+    font-weight: 700;
+    background-color: #63a0e1;
+    color: #fff;
+}
