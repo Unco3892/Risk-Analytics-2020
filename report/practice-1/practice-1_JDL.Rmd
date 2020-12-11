@@ -298,7 +298,7 @@ Even if our dataset only consider the working days, we should use 365 days to co
 ```{r}
 # return level block maxima:
 return_level_maxima <- fit_gev_maxima_weekly$estimate[1] + (fit_gev_maxima_weekly$estimate[2]/fit_gev_maxima_weekly$estimate[3])*(((-log(1-1/365))^-fit_gev_maxima_weekly$estimate[3])-1)
-waiting$
+
 return_level <- return_level_maxima[[1]]
 return_level
 ```

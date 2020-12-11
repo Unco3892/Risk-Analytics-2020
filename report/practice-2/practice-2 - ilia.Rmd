@@ -144,15 +144,7 @@ Using the proposed function, we can fit the Poisson model to our data an compute
 library (MASS)
 sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
 mu <- sales_poisson$estimate
-
-#critical_fractile_poisson <- -((log(1-cf_news))/mu)
-  
-# ppois(quant,sales_poisson$estimate, lower.tail= F)
 critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
-# qpois(cf_news,sales_poisson$estimate, lower.tail = F)
-
-# Ratio
-
 ```
 After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile: according to this model, the estimated critical fractile is `r critical_fractile_poisson`.
 
@@ -211,7 +203,9 @@ sales_data %>%
   geom_hline(yintercept = u150,
              linetype = 2,
              colour = "red") +
-  guides(color = FALSE)
+  guides(color = FALSE) +
+  labs (title = "Sales above the threshold of 150 are highlighted in red",
+        subtitle = "Blue lines represent day when the sales are 0")
 
 cutter(sales_data$Sales, u170)
 
@@ -224,7 +218,9 @@ sales_data %>%
   geom_hline(yintercept = u170,
              linetype = 2,
              colour = "red") +
-  guides(color = FALSE)
+  guides(color = FALSE) + 
+  labs (title = "Sales above the threshold of 170 are highlighted in red",
+        subtitle = "Blue lines represent day when the sales are 0")
 
 # The code below is to be removed later
 # for (i in seq_along(different_u)){
@@ -238,35 +234,29 @@ In order to define which threshold is the best, we are going to fit a GPD to the
 
 ```{r}
 u120 <- 120
-u190 <- 120
+u190 <- 170
 
-gpd_u120 <- fpot(sales_data$Sales, threshold = u120, model = c("gpd"))
 
 gpd_u150 <- fpot(sales_data$Sales, threshold = u150, model = c("gpd"))
 gpd_u170 <- fpot(sales_data$Sales, threshold = u170, model = c("gpd"))
 
-gpd_u190 <- fpot(sales_data$Sales, threshold = u190, model = c("gpd"))
+par(mfrow = c(2,2))
+plot(gpd_u150, which = 1)
+plot(gpd_u170, which = 1)
 
-
-stats::AIC(gpd_u120)
-stats::AIC(gpd_u150)
-stats::AIC(gpd_u170)
-stats::AIC(gpd_u190)
 ```
 
-The AIC is lower when taking the threshold at 170. Thus, we will use this model for the next analysis. 
-
-Value at Risk.
+Comparing the pp-plots of the two models, we decide to use the threshold of 150 as it provides better results. Thus, we will use the model with this threshold to compute the Value at Risk.
 
 ```{r}
 n.sales <- sales_data %>%
-  filter(Sales > u170) %>%
+  filter(Sales > u150) %>%
   summarize(n = n()) %>%
   pull(n)
 
 p.sales <- n.sales/length(sales_data$Sales)
 
-VAR <- u170 + gpd_u170$estimate[1]/gpd_u170$estimate[2] * (((1-cf_news)/p.sales)^-gpd_u170$estimate[2]-1)
+VAR <- u150 + gpd_u150$estimate[1]/gpd_u150$estimate[2] * (((1-cf_news)/p.sales)^-gpd_u150$estimate[2]-1)
 
 VAR[[1]]
 
