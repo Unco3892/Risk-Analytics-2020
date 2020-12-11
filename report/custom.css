@@ -36,6 +36,8 @@ a {
 .toc .toc-box>ul {
     margin: 0;
     padding-left: 1rem;
+    padding-bottom: 0.5rem;
+    padding-top: 0.5rem;
 }
 
 .main-content h1, .main-content h2, .main-content h3, .main-content h4, .main-content h5, .main-content h6 {
@@ -50,6 +52,8 @@ div#TOC li {
     background-image:none;
     background-repeat:none;
     background-position:0;
+    padding-top: 0.6rem;
+    padding-bottom: 0.6rem;
 }
 
 .main-content table th {

@@ -13,7 +13,7 @@ waiting <- read.csv(here::here("data/waiting.csv"))
 
 *Graph* displays the daily waiting times period that the Data covers. It is difficult to notice any seasonality or cyclic patterns in the extreme waiting times.
 
-```{r, fig.asp=.2}
+```{r}
 waiting$Date <- as.Date(waiting$Date)
 
 waiting %>%
@@ -69,7 +69,7 @@ sd <- sd(waiting$Average.Wait.Seconds)
 
 upper_limit <- qnorm(p, mean, sd)
 upper_limit %>% 
-  kable(caption = "Upper Limit") %>% 
+  kable(caption = "Upper Limit", align= "c") %>% 
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
@@ -232,7 +232,7 @@ shape <- fit_gev_maxima_monthly$estimate[3]
 The estimates of the GEV show that the latter is a Weibull: indeed, the shape parameter is negative (`r shape`).
 
 
-```{r}
+```{r, fig.asp= 1.2}
 par(mfrow = c(2,2))
 plot(fit_gev_maxima_monthly)
 ```
@@ -249,10 +249,9 @@ fit_gev_maxima_weekly
 
 Once again, we have a shape parameter that is negative, meaning that we are still in a Weibull. 
 
-```{r}
+```{r,fig.asp= 1.2}
 par(mfrow = c(2,2))
 plot(fit_gev_maxima_weekly)
-
 ```
 
 Comparing the results between monthly blocks and weekly ones, we can clearly see that the results are better in the latter. Indeed, points are almost perfectly fitted for both the probability and quantile plot, which was not the case when we fitted the GEV to the monthly maxima. Thus, we can conclude that this for the block maxima approach the maxima from weekly blocks should be used.
@@ -269,7 +268,7 @@ fit_pot_u1 <-fpot(waiting$Average.Wait.Seconds, threshold = u1, model = c("gpd")
 fit_pot_u2 <-fpot(waiting$Average.Wait.Seconds, threshold = u2, model = c("gpd"))
 ```
 
-```{r}
+```{r, fig.asp=1.2}
 par(mfrow=c(2,2))
 plot(fit_pot_u1)
 ```
@@ -277,7 +276,7 @@ The plots above are the results of the analysis using a threhsold of `r u1`. We 
 
 We are now going to do the same analysis using a threshold of `r u2`
 
-```{r}
+```{r,fig.asp=1.2}
 par(mfrow=c(2,2))
 plot(fit_pot_u2)
 ```
