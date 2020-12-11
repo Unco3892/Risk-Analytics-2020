@@ -96,6 +96,7 @@ cf_news
 
 Alternatively, we could have used the [Scperf](https://cran.r-project.org/web/packages/SCperf/SCperf.pdf) library and the `Newsboy` function.
 
+
 ```{r}
 # Using a library
 library(SCperf)
@@ -115,14 +116,12 @@ x% probability over a given time horizon.
 
 In this case, we have much more underage cost than overage giving us a ratio of `r cf_news`.
 
-Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'. More concrectly, one could compute the Value-at-Risk at a level of  `r cf_news`, and compute the expected shortfall which indicates the average value of sales when we enter the etremes of the distribution, hence when the sales are extremely high which, as we saw in the beginning of this analysis, is likely to lead to a stockout.
+Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'. More concrectly, one could compute the Value-at-Risk at a level of  `r cf_news`, and compute the expected shortfall which indicates the average value of sales when we enter the extremes of the distribution, hence when the sales are extremely high which, as we saw in the beginning of this analysis, is likely to lead to a stockout.
 
 # d)
 Poisson model.
 
 using maximum likelihood estimation for μ.
-
-`Number of exceedences / n`
 
 ```{r}
 # Manual approach
