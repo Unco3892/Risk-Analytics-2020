@@ -1,15 +1,15 @@
 ---
-title: "Risk Analytics - 2020 Report"
-author: "Name I, First Name I and Name II, First Name II"
+title: "Risk Analytics -2020 Report"
+author: "Ilia Azizi, Justin Denis-Lessard, Maria Pia El Asmar"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   prettydoc::html_pretty:
     theme: cayman
     toc: true
+    toc_depth: 2
     highlight: github
+    css: custom.css
 ---
-
-<!-- Ilia will add some nice formating options here later. -->
 
 ```{r child = 'practical-1.Rmd'}
 ```
@@ -17,5 +17,5 @@ output:
 ```{r child = 'practical-2.Rmd'}
 ```
 
-```{r child = 'practical-3.Rmd'}
+```{r child = 'practical-3.Rmd', eval=FALSE}
 ```

@@ -1,20 +1,10 @@
----
-title: "Risk Analytics -2020 Report"
-author: "Ilia Azizi, Justin Denis-Lessard, Maria Pia El Asmar"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
-output:
-  prettydoc::html_pretty:
-    theme: cayman
-    toc: true
-    highlight: github
-    css: custom.css
----
+# Practical 2: Demand monitoring, part I
 
 ```{r, echo = FALSE, message = FALSE, include=FALSE}
 source(here::here("scripts/setup.R"))
 ```
 
-# a)
+## a)
 
 ```{r}
 sales_data <-
@@ -86,7 +76,7 @@ Looking at the sales data distribution in the above graph, one can notice that n
 Going over each block of data is not necessary as the observations above are already conclusive: the vendors go out of stock when there is an increasing demand. The sellers were probably not able to forecast the positive trends and to manage the inventory given the increasing sales, leading them to stockout.
 
 
-# b)
+## b)
 Newsvendor model.
 
 Knowing the newsvendor model we can easily compute p:
@@ -117,14 +107,14 @@ Newsboy(m= mean_s,sd= sd_s,p=10,c=1,s=0.1)
 ```
 
 Hence, the critical fractile will be computed as q = F^-1(`r cf_news`). 
-# PIA: is it possible to write the equation in a nicer way?
+### PIA: is it possible to write the equation in a nicer way?
 
-# c)
+## c)
 Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening. In fact, we can say that the critical fractile of the newsvendor model is the equivalent the level of the Value-at-Risk  (`r cf_news`): we don't want to go beyond this value to avoid entering the extreme values. 
 
 Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'. More concrectly, one could compute the Value-at-Risk at a level of  `r cf_news`, and compute the expected shortfall which indicates the average value of sales when we enter the extremes of the distribution, hence when the sales are extremely high which, as we saw in the beginning of this analysis, is likely to lead to a stockout.
 
-# d)
+## d)
 Poisson model.
 
 using maximum likelihood estimation for μ.
@@ -154,7 +144,7 @@ critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
 ```
 After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile: according to this model, the estimated critical fractile is `r critical_fractile_poisson`.
 
-# e)
+## e)
 We are now going to compute a POT model. First we have to define the threshold.
 
 ```{r,message = FALSE,warning=FALSE}
@@ -264,11 +254,11 @@ VAR[[1]]
 
 ```
 
-# f)
+## f)
 
 Back test as seen on the slides. We will go over this in more detail.
 
-## e
+### e
 ```{r}
 sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
 mu <- sales_poisson$estimate
@@ -379,7 +369,7 @@ binom.test(sales_violations, nrow(sales_test), p=1-cf_news)
 
 ```
 
-## d
+### d
 ```{r}
 # function (){
 #   MASS::fitdistr(sales_data$Sales, "Poisson")
@@ -390,56 +380,4 @@ critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
 
 
 ```{r}
-# We create a test set that we can use
-sales_test <- sales_data %>% tail(300)
-
-# Create a function for our models
-sales_risk <- function(u_threshold, a_dataframe, a_column, alpha) {
-  # filtering for observations above a threshold
-  sales_above <-
-    a_dataframe %>% filter({
-      {
-        a_column
-      }
-    } > u_threshold) %>% pull({
-      {
-        a_column
-      }
-    })
-  # fitting the gpd
-  sales_gpd <- sales_above %>%
-    fpot(., threshold = u_threshold, model = c("gpd"))
-  
-
-  
-  # This creates problems and has to be resolved
-  fbar <- length(sales_above) / nrow(sales_test)
-  
-  # we can extract the the shape, scale and use the alpha that we would like
-  # u_threshold + (sales_gpd$estimate[["scale"]] / sales_gpd$estimate[["shape"]]) *
-    # (((1 - alpha) / fbar) ^ -sales_gpd$estimate[["shape"]] - 1)
-  }
-
-# applying it as an example
-sales_risk(120, sales_data, Sales, cf_news)
-
-# loop over for calculating the VAR of 365 days
-train_size <- 365
-risk_values <- seq_along(sales_test$Sales)
-n_above <- nrow(sales_data)+1
-
-for (i in seq_along(sales_test$Sales)) {
-  # chosen window
-  window <- sales_data %>% slice((n_above - i - train_size):(n_above - i))
-  # calculating the value at risk
-  risk_values[i] <- sales_risk(120, window, Sales, cf_news)
-  # Bernoulli violations
-  risk_values[i] <- ifelse(risk_values[i] > sales_test$Sales[i], 0, 1)
-}
-
-# theoretical violations
-sales_theory <-nrow(sales_test) * (1-cf_news)
-
-# summing up violations
-sales_violations <- sum(risk_values)
 ```

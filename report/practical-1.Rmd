@@ -1,11 +1,6 @@
----
-title: "report"
-output: html_document
----
-
 # Practical 1: A control chart problem
 
-## a)
+## a - summary of waiting times
 
 ```{r, echo = FALSE, message = FALSE, include=FALSE}
 source(here::here("scripts/setup.R"))
@@ -58,16 +53,17 @@ waiting %>%
         y = "Time [seconds]")
 ```
 
-## b) 
-
-As the one year period corresponds to $n = 250$, we can deduce the upper control limit, which corresponds to $p = 1-1/n$ and equals to `r p`. 
-After scaling this value, we can retrieve the associated quantile or the upper control limit, which corresponds to `r upper_limit`.
+## b - normal approximation
 
 ```{r}
 n <- 250
 
 p <- (1-(1/n))
+```
 
+As the one year period corresponds to  $$n = 250$$, we can deduce the upper control limit, which corresponds to $$p = 1-1/n$$ and equals to `r p`. 
+After scaling this value, we can retrieve the associated quantile or the upper control limit.
+```{r}
 mean <- mean(waiting$Average.Wait.Seconds)
 sd <- sd(waiting$Average.Wait.Seconds)
 
@@ -77,23 +73,23 @@ upper_limit %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
+The upper control limit corresponds to `r upper_limit`.
+
 *Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theorical values under the assumption of a normal distribution. This suggests that the tails are heavy.
 ```{r}
 qqnorm(scale(waiting$Average.Wait.Seconds))
 qqline(scale(waiting$Average.Wait.Seconds))
 hist(waiting$Average.Wait.Seconds, main = "Histogram", xlab = "Time [seconds]") 
 ```
- 
- 
-Running the Shapiro-Wilk test shows that the hypothesis of normality is rejected at level `r shapiro$p.value`
 
 ```{r}
 shapiro <- shapiro.test(waiting$Average.Wait.Seconds)
 ```
 
+Running the Shapiro-Wilk test shows that the hypothesis of normality is rejected at level `r shapiro$p.value`
 
-## c)
-### Block Maxima
+## c - analzying long waiting times 
+### Block Maxima    
 
 The Block Maxima approach divides the dataset into blocks with the same number of observations. Then, for each block we select the observation with the highest value. Looking at the dataset, we can divide it by months or on a weekly basis :
 
@@ -202,8 +198,6 @@ waiting %>%
         title = "Average daily waiting time")
 ```
 
-
-
 ```{r}
 waiting %>%
   ggplot() +
@@ -222,7 +216,7 @@ waiting %>%
 
 We are going to fit a GPD on the difference between the observations highleted in the red dots and the thresholds. Once, using a threshold of 800 and then, of 600.
 
-## d)
+## d - modelling the extremes 
 ### Block Maxima
 
 To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and $\mu for the maxima. First, we will fit a model on the monthly maxima, then on the weekly ones.
@@ -290,7 +284,7 @@ plot(fit_pot_u2)
 
 Naturally, having a higher threhsold the number of observations is lower. Looking at the results, we can conclude that we should select the threshold `r u1` since it allows having a better pp-plot and qq-plot.
 
-## e) 
+## e - upper control limit 
 ### Block Maxima
 
 Even if our dataset only consider the working days, we should use 365 days to compute the one year return level.

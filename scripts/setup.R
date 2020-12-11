@@ -8,11 +8,8 @@ packages <- c(
   "tidyverse", "lubridate", # for wrangling
   "ggrepel", "gghighlight", "patchwork", "scales", # for plotting
   "knitr", "kableExtra", "bookdown", "rmarkdown",
-  #"plyr", 
-  #"evir", 
-  #"ismev", 
-  #"extRemes", 
-  "evd")
+  "evd",
+  "prettydoc")
 
 # install packages if they were not already installed
 unavailable <- setdiff(packages, rownames(installed.packages()))
