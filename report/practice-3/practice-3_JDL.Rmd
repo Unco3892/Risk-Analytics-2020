@@ -8,6 +8,7 @@ source(here::here("scripts/setup.R"))
 
 library(reshape2)
 library(copula)
+opts_knit$set(eval.after = 'fig.cap')
 ```
 
 
@@ -19,43 +20,18 @@ sales_10_adj <-
 
 ## a)
 
+The main challenge under this configuration is dealing the with the correlation between the products of the basket. As the VaR is not additive, figures of components of a basket do not add to the risk of the overall basket. This is because this measure does not take correlations into account and a simple addition could lead to double counting and overestimating the risk, especially when the tail dependence is rather low.
 
 ## b)
 
-```{r}
-#CHI
-nb_prod <- length(sales_10_adj)
-
-chi <- matrix(NA, nb_prod, nb_prod)
-
-colnames(chi) <- 1:10
-rownames(chi) <- 1:10
-
-for (i in 1:(nb_prod - 1)){
-  for (j in (i + 1):nb_prod){
-    chi[i,j] <- extRemes::taildep(sales_10_adj[,i], sales_10_adj[,j], 0.9)[[1]]
-  }
-}
-
-longChi<-melt(chi)
-
-longChi %>%
-  filter(!is.na(value)) %>%
-  ggplot(aes(x = factor(Var1), y = factor(Var2))) +
-  geom_raster(aes(fill=value)) +
-  scale_fill_gradient(low="grey90", high="red") +
-  labs(x="product", y="product", title="chi", fill = "chi")
-```
-
-
-```{r}
+```{r chibar, echo=FALSE, fig.cap= "Figure 3.1"}
 #CHI BAR
 nb_prod <- length(sales_10_adj)
 
 chi_bar <- matrix(NA, nb_prod, nb_prod)
 
-colnames(chi) <- 1:10
-rownames(chi) <- 1:10
+colnames(chi_bar) <- 1:10
+rownames(chi_bar) <- 1:10
 
 for (i in 1:(nb_prod - 1)){
   for (j in (i + 1):nb_prod){
@@ -69,13 +45,30 @@ longChi_bar %>%
   filter(!is.na(value)) %>%
   ggplot(aes(x = factor(Var1), y = factor(Var2))) +
   geom_raster(aes(fill=value)) +
-  scale_fill_gradient(low="grey90", high="orange") +
-  labs(x="product", y="product", title="chi bar", fill = "chi bar")
+  scale_fill_gradient(low="grey90", high="red") +
+  labs(x="product", y="product", title="Tail dependence for each pair of products", fill = "chi bar")
 ```
 
+The tail dependence can be measured thanks to $\bar{\chi}$ and is given by the following equation : $\bar{\chi}(u) = 2*log(Pr[U > u])/log(Pr[U > u, V > u]) - 1$
 
+Figure \@ref(fig:chibar) diplays this mesure of dependence for each pair of products at the 90% quantile. We may easily notice that certain pairs of products are highly tail dependent.
 
-```{r}
+```{r topchibar, echo=FALSE}
+longChi_bar %>%
+  filter(!is.na(value)) %>%
+  arrange(desc(value)) %>%
+  top_n(5, value) %>%
+  kable_maker(caption="Employer rating: Comparison with 2 sentiment analysis methods",
+                                      col.names=c("Product A",
+                                                  "Product B",
+                                                  "$\\bar{\\chi}$"
+                                                  )
+              )
+```
+
+Table \@ref(tab:topchibar) shows the top five pairs of product in terms of tail dependence.
+
+```{r pavalchi, echo=FALSE}
 nb_prod <- length(sales_10_adj)
 
 pvalue <- matrix(NA, nb_prod, nb_prod)
@@ -100,31 +93,35 @@ longPval %>%
       value < 0.05 ~ "< 5%")) %>%
   ggplot(aes(x = factor(Var1), y = factor(Var2))) +
   geom_raster(aes(fill=pvalue)) +
-  labs(x="product", y="product", title="Tail Dependence Test", fill = "P-Value")
+  labs(x="product", y="product", title="Tail dependence test for each pair of products", fill = "P-Value")
 ```
 
-Null hypothesis is tail dependence!
-Red = reject H0 = indep.
+We may also apply a tail dependence test for each pair of products, the null hypothesis being the tail dependence.
+Figure \@ref(fig:pavalchi) shows that a majority of pair of products may be considered tail dependent since their p-value is superior to 5% for a probability thresold of 90%.
 
-High tail dependence for extreme values :
-```{r}
-chiplot(cbind(sales_10_adj[,2], sales_10_adj[,3]), which = 2)
+```{r chiplothigh, echo=FALSE}
+chiplot(cbind(sales_10_adj[,2], sales_10_adj[,3]), which = 2, main2 = "Chi Bar Plot for products 2 & 3")
 ```
 
-Low tail dependence for extreme values :
-```{r}
-chiplot(cbind(sales_10_adj[,2], sales_10_adj[,10]), which = 2)
+Chi Bar plot may also be usefull to detect tail dependency. As shown on Graph \@ref(fig:chiplothigh) , products 2 & 3 look strongly dependent in the upper tail.
+
+```{r chiplotlow,echo=FALSE}
+chiplot(cbind(sales_10_adj[,2], sales_10_adj[,10]), which = 2, main2 = "Chi Bar Plot for products 2 & 10")
 ```
 
+Conversly, Figure \@ref(fig:chiplotlow) shows low tail-dependence for product 2 & 10.
 
 ## c)
 
 The Gaussian copula is asymptotically independent in both upper and lower tails.
-Since a majority of pairs seems dependent in upper tail, the Gaussian copula seems inappropriate.
+Since a majority of pairs are dependent in upper tail, the Gaussian copula seems inappropriate.
 
 ## d)
 ### .i
-```{r}
+
+Prior to fitting the Copula, we apply a uniform transformation to the data. A gdp is fitted on data points above a thresold corresponding to the 90% quantile for each products. The instances below this quantile are treated in a different manner and are uniformised using their empircal cumulative distribution.
+
+```{r echo=FALSE}
 # Thresold : quantile @ 0.9s
 thresholds <- numeric(10)
 
@@ -140,7 +137,7 @@ for (i in 1:10) {
 }
 ```
 
-```{r}
+```{r echo=FALSE}
 transform_to_uniform <- function(y,
                                  cdf,
                                  threshold,
@@ -179,7 +176,7 @@ transform_to_uniform <- function(y,
 ```
 
 
-```{r}
+```{r echo=FALSE}
 uniformised <- lapply(1:10, function (i) {
 transform_to_uniform(sales_10_adj[,i], 
                      cdf = evd::dgpd, 
@@ -188,9 +185,7 @@ transform_to_uniform(sales_10_adj[,i],
                      shape = fit_pot[[i]]$estimate[2])
   
 })
-```
 
-```{r}
 # merging the u's
 transformed <-  as.data.frame(uniformised[[1]]$transformed)
 colnames(transformed) <- "product_1"
@@ -204,7 +199,7 @@ for (i in 2:10){
 
 ### .ii 
 
-```{r warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE, echo=FALSE}
 fit_results <- expand.grid(Copula = c("Gauss", "Gumbel", "Clayton", "T"),
                        param1 = NA,
                        param2 = NA,
@@ -212,9 +207,7 @@ fit_results <- expand.grid(Copula = c("Gauss", "Gumbel", "Clayton", "T"),
                        AIC = NA)
 ```
 
-
-
-```{r warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE, echo=FALSE}
 fit_normal <- fitCopula(normalCopula(dim = 10), transformed, method = "ml")
 
 
@@ -224,7 +217,7 @@ fit_results$LogLikelihood[1] <- stats::logLik(fit_normal)
 fit_results$AIC[1] <- stats::AIC(fit_normal)
 ```
 
-```{r warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE, echo=FALSE}
 fit_gumbel <- fitCopula(gumbelCopula(dim = 10), transformed, method = "ml")
 
 fit_results$param1[2] <-coef(fit_gumbel)[1]
@@ -233,7 +226,7 @@ fit_results$LogLikelihood[2] <- stats::logLik(fit_gumbel)
 fit_results$AIC[2] <- stats::AIC(fit_gumbel)
 ```
 
-```{r warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE, echo=FALSE}
 fit_clayton <- fitCopula(claytonCopula(dim = 10), transformed, method = "ml")
 
 fit_results$param1[3] <-coef(fit_clayton)[1]
@@ -242,33 +235,45 @@ fit_results$LogLikelihood[3] <- stats::logLik(fit_clayton)
 fit_results$AIC[3] <- stats::AIC(fit_clayton)
 ```
 
-```{r warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE, echo=FALSE}
 fit_t <- fitCopula(tCopula(dim = 10), transformed)
 
 rho <- coef(fit_t)[1]
 df <- coef(fit_t)[2]
 
 fit_results$param1[4] <-coef(fit_t)[1]
-fit_results$param2[4] <-coef(fit_t)[2]
+fit_results$param2[4] <-round(coef(fit_t)[2],3)
 fit_results$LogLikelihood[4] <- stats::logLik(fit_t)
 fit_results$AIC[4] <- stats::AIC(fit_t)
 ```
 
 
-```{r}
-fit_results %>% arrange(AIC)
+```{r resultscopu}
+fit_results %>% arrange(AIC) %>%
+  kable_maker(caption="Employer rating: Comparison with 2 sentiment analysis methods",
+                                      col.names=c("Copula",
+                                                  "Parameter 1",
+                                                  "Parameter 2",
+                                                  "Log-Likelihood",
+                                                  "AIC"
+                                                  ))
 ```
+
+Table \@ref(tab:resultscopu) displays the Coppulas that have been fitted to the transformed data. With an AIC of -508, the T coppula suits the best the data and will be retained for the following of our analysis.
 
 ### .iii
 
-```{r}
+After selecting the best coppula, we generate 1913 instances for each products to which we apply the inverse of the transformation that has been made in point i.
+
+```{r echo=FALSE}
+set.seed(1234)
 simulated <- rCopula(1913, tCopula(param = rho, dim = 10, df = df))
 # simulated <- rCopula(1913, normalCopula(fit_results$param1[1], dim = 10))
 # simulated <- rCopula(1913, gumbelCopula(fit_results$param1[2], dim = 10))
 # simulated <- rCopula(1913, claytonCopula(fit_results$param1[3], dim = 10))
 ```
 
-```{r}
+```{r echo=FALSE}
 inverse_transform <- function(u, ecdf, quantile_function, p, threshold, scale, shape) {
   above <- u > 1 - p
   original_scale <- numeric(length = length(u))
@@ -279,7 +284,7 @@ inverse_transform <- function(u, ecdf, quantile_function, p, threshold, scale, s
 }
 ```
 
-```{r}
+```{r echo=FALSE}
 simulated_inversed <- sapply(1:10, function (i) {
 inverse_transform(u = simulated[,i], 
                   ecdf = uniformised[[i]]$ecdf,
@@ -292,7 +297,8 @@ inverse_transform(u = simulated[,i],
 })
 ```
 
-### iv
+
+### .iv
 
 VaR of the sum
 ```{r}
