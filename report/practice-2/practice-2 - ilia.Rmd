@@ -1,6 +1,13 @@
 ---
-title: "report"
-output: html_document
+title: "Risk Analytics -2020 Report"
+author: "Ilia Azizi, Justin Denis-Lessard, Maria Pia El Asmar"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    toc: true
+    highlight: github
+    css: custom.css
 ---
 
 ```{r, echo = FALSE, message = FALSE, include=FALSE}
@@ -24,12 +31,15 @@ ggplot(data = sales_data, aes(x = Day, y = Sales)) +
   labs(title = "Sales unit by day")+
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
 The red line shows when the observed number of sales goes to zero, essentially the extreme of the sales, there are also other instances where it nears to zero however we ignore them for simplicity sake. We run of stock in these cases.
 
 From the graph above, we can also notice that right before going out of stock, the sales are extremely high. When looking at the first block, from day 0 to day 330 which is the first stockout, the sales data are distributes as follows:
+
 ```{r}
 sales_data %>% 
-  arrange(Sales)
+  arrange(Sales) %>% 
+  kable_maker()
 
 sales_data %>% 
   filter(Day < 330) %>% 
@@ -37,14 +47,14 @@ sales_data %>%
   geom_point() +
   labs(title = "Sales unit in the first 330 days")+
   theme(plot.title = element_text(hjust = 0.5))
-
 ```
 One can clearly notice that there is a positive tren in the sales, which the vendors were not able to forecast hence the stockout at Day 330. 
 
 We can now look at what happened between the first and the second stockout.
 ```{r}
 sales_data %>% 
-  arrange(Sales)
+  arrange(Sales)%>% 
+  kable_maker()
 
 sales_data %>% 
   filter(Day > 330 & Day < 383) %>% 
@@ -60,7 +70,8 @@ We can now observe what the sales data between day second and thrid time they we
 
 ```{r}
 sales_data %>% 
-  arrange(Sales)
+  arrange(Sales)%>% 
+  kable_maker()
 
 sales_data %>% 
   filter(Day > 394 & Day < 696) %>% 
@@ -248,10 +259,8 @@ gpd_u170 <- fpot(sales_data$Sales, threshold = u170, model = c("gpd"))
 gpd_u190 <- fpot(sales_data$Sales, threshold = u190, model = c("gpd"))
 
 
-stats::AIC(gpd_u120)
-stats::AIC(gpd_u150)
-stats::AIC(gpd_u170)
-stats::AIC(gpd_u190)
+plot(gpd_u150, which= 1)
+
 ```
 
 The AIC is lower when taking the threshold at 170. Thus, we will use this model for the next analysis. 
@@ -276,7 +285,7 @@ VAR[[1]]
 
 Back test as seen on the slides. We will go over this in more detail.
 
-## d
+## e
 ```{r}
 sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
 mu <- sales_poisson$estimate
@@ -313,7 +322,9 @@ sales_risk <- function(u_threshold, a_dataframe, a_column, alpha) {
   }
 
 # applying it as an example
-sales_risk(120, sales_data, Sales, cf_news)
+# sales_risk(150, sales_data, Sales, cf_news)
+
+# ---
 
 # loop over for calculating the VAR of 365 days
 train_size <- 365
@@ -324,7 +335,7 @@ for (i in seq_along(sales_test$Sales)) {
   # chosen window
   window <- sales_data %>% slice((n_above - i - train_size):(n_above - i))
   # calculating the value at risk
-  risk_values[i] <- sales_risk(120, window, Sales, cf_news)
+  risk_values[i] <- sales_risk(150, window, Sales, cf_news)
   # Bernoulli violations
   risk_values[i] <- ifelse(risk_values[i] > sales_test$Sales[i], 0, 1)
 }
@@ -335,7 +346,11 @@ sales_theory <-nrow(sales_test) * (1-cf_news)
 # summing up violations
 sales_violations <- sum(risk_values)
 
+binom.test(sales_violations, nrow(sales_test), p=1-cf_news)
 
+# 22 or more violations
+
+# evd bays, prior to the parameter
 ```
 
 We can also do use the 90th of the data for the threshold.
@@ -357,15 +372,22 @@ for (i in seq_along(sales_test$Sales)) {
   risk_values[i] <- ifelse(risk_values[i] > sales_test$Sales[i], 0, 1)
 }
 
+# higher than the quantile, not possible!
+
 # theoretical violations
 sales_theory <-nrow(sales_test) * (1-cf_news)
 
 # summing up violations
 sales_violations <- sum(risk_values)
 
+# histogram of all the p hats and you check if the test stat is the center of
+# of distribution
+
 
 # Naturally our critical fractile is the alpha here, right?
 prop.test((nrow(sales_test)-sales_violations),nrow(sales_test), cf_news)
+
+# bootstrapping, that we have a distibution for it
 
 prop.test(sales_violations,nrow(sales_test), p=1-cf_news)
 
@@ -374,8 +396,67 @@ binom.test(sales_violations, nrow(sales_test), p=1-cf_news)
 
 ```
 
-## f
-d and e
+## d
+```{r}
+# function (){
+#   MASS::fitdistr(sales_data$Sales, "Poisson")
+mu <- sales_poisson$estimate
+critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
+
+```
 
 
+```{r}
+# We create a test set that we can use
+sales_test <- sales_data %>% tail(300)
 
+# Create a function for our models
+sales_risk <- function(u_threshold, a_dataframe, a_column, alpha) {
+  # filtering for observations above a threshold
+  sales_above <-
+    a_dataframe %>% filter({
+      {
+        a_column
+      }
+    } > u_threshold) %>% pull({
+      {
+        a_column
+      }
+    })
+  # fitting the gpd
+  sales_gpd <- sales_above %>%
+    fpot(., threshold = u_threshold, model = c("gpd"))
+  
+
+  
+  # This creates problems and has to be resolved
+  fbar <- length(sales_above) / nrow(sales_test)
+  
+  # we can extract the the shape, scale and use the alpha that we would like
+  # u_threshold + (sales_gpd$estimate[["scale"]] / sales_gpd$estimate[["shape"]]) *
+    # (((1 - alpha) / fbar) ^ -sales_gpd$estimate[["shape"]] - 1)
+  }
+
+# applying it as an example
+sales_risk(120, sales_data, Sales, cf_news)
+
+# loop over for calculating the VAR of 365 days
+train_size <- 365
+risk_values <- seq_along(sales_test$Sales)
+n_above <- nrow(sales_data)+1
+
+for (i in seq_along(sales_test$Sales)) {
+  # chosen window
+  window <- sales_data %>% slice((n_above - i - train_size):(n_above - i))
+  # calculating the value at risk
+  risk_values[i] <- sales_risk(120, window, Sales, cf_news)
+  # Bernoulli violations
+  risk_values[i] <- ifelse(risk_values[i] > sales_test$Sales[i], 0, 1)
+}
+
+# theoretical violations
+sales_theory <-nrow(sales_test) * (1-cf_news)
+
+# summing up violations
+sales_violations <- sum(risk_values)
+```

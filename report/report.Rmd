@@ -1,8 +1,12 @@
 ---
-title: "Risk Analytics - Report"
+title: "Risk Analytics - 2020 Report"
 author: "Name I, First Name I and Name II, First Name II"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
-output:html_document:toc: true
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    toc: true
+    highlight: github
 ---
 
 <!-- Ilia will add some nice formating options here later. -->
