@@ -28,8 +28,9 @@ From the graph above, we can also notice that right before going out of stock, t
 
 ```{r}
 sales_data %>% 
-  arrange(Sales) %>% 
-  kable_maker()
+  arrange(Sales) %>%
+  head() %>%
+  kable_maker(caption="The first 6 lowest sales")
 
 sales_data %>% 
   filter(Day < 330) %>% 
@@ -38,21 +39,17 @@ sales_data %>%
   labs(title = "Sales unit in the first 330 days")+
   theme(plot.title = element_text(hjust = 0.5))
 ```
-One can clearly notice that there is a positive tren in the sales, which the vendors were not able to forecast hence the stockout at Day 330. 
+
+One can clearly notice that from the first few observations showed, there is a positive trend in the sales, which the vendors were not able to forecast hence the stockout at Day 330. 
 
 We can now look at what happened between the first and the second stockout.
 ```{r}
-sales_data %>% 
-  arrange(Sales)%>% 
-  kable_maker()
-
 sales_data %>% 
   filter(Day > 330 & Day < 383) %>% 
   ggplot(aes(x=Day, y = Sales))+
   geom_point() +
   labs(title = "Sales unit in the between the 1st and the 2nd stockout")+
   theme(plot.title = element_text(hjust = 0.5))
-
 ```
 One can notice that following the first stockout there isn't a particular structure in the sales data, it looks like the sales are random. Moreover, the stockout lasted 2 days. Hence, we can say that the second stockout is probably due to mismanagement following the initial positive trend of the data. 
 
@@ -60,16 +57,11 @@ We can now observe what the sales data between day second and thrid time they we
 
 ```{r}
 sales_data %>% 
-  arrange(Sales)%>% 
-  kable_maker()
-
-sales_data %>% 
   filter(Day > 394 & Day < 696) %>% 
   ggplot(aes(x=Day, y = Sales))+
   geom_line() +
   labs(title = "Sales unit in the between the 2nd and the 3rd stockout")+
   theme(plot.title = element_text(hjust = 0.5))
-
 ```
 Looking at the sales data distribution in the above graph, one can notice that n the one hand the Sales demand until Day 600 seems kind of linear, but on the other hand following this day it looks like there is once again a positive trend. 
 
@@ -137,12 +129,11 @@ cf_news
 Using the proposed function, we can fit the Poisson model to our data an compute the estimated μ by using the MLE.
 
 ```{r, warning=FALSE}
-library (MASS)
-sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
+sales_poisson <- fitdistr(sales_data$Sales, "Poisson")
 mu <- sales_poisson$estimate
-critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
+cf_pois <- qpois(cf_news,sales_poisson$estimate)
 ```
-After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile: according to this model, the estimated critical fractile is `r critical_fractile_poisson`.
+After having fitted a Poisson to our data, we obtain μ = `r mu`. This allows us to compute the critical fractile: according to this model, the estimated critical fractile is `r cf_pois`.
 
 ## part e - peaks-over-thresholds model
 We are now going to compute a POT model. First we have to define the threshold.
@@ -161,79 +152,57 @@ u_plot <- function (a_column) {
 }
 
 u_plot(sales_data$Sales)
-
 ```
 
-Thresholds of 150 and 170 seem interesting, we can test for both.
+Thresholds of 150 and 170 seem interesting, we can test for all three.
 
 ```{r}
 # different_u <- list(u150=(150, u170= 170)
-
+# different_u <- list(u150=(150, u170= 170)
 u150 <- 150
 u170 <- 170
-
 # Later have to use a mutate+ across + functions in order no to have code duplicates 
 sales_data$col1 <- cut(sales_data$Sales,
                breaks = c(-Inf, u150, Inf),
                labels = c("<=u", ">u")) 
-
 sales_data$col2 <- cut(sales_data$Sales,
                breaks = c(-Inf, u170, Inf),
                labels = c("<=u", ">u"))
 
-cutter <- function(a_column, u_threshold,a_name){
-  sales_data$hi <- cut(sales_data$Sales,
-               breaks = c(-Inf, u_threshold, Inf),
-               labels = c("<=u", ">u"))
+# we create a function to make our plots
+plotter <- function (a_column, u_threshold) {
+  sales_data %>%
+    ggplot() +
+    geom_line(aes(Day, Sales)) +
+    geom_vline(xintercept = stockout, color = "blue") +
+    geom_point(aes(Day, Sales, color = get(a_column))) +
+    scale_colour_manual(values = c('black', 'red')) +
+    geom_hline(yintercept = u_threshold,
+               linetype = 2,
+               colour = "red") +
+    guides(color = FALSE) +
+    labs (
+      title = paste(
+        "Sales above the threshold of",
+        u_threshold,
+        "are highlighted in red"
+      ),
+      subtitle = "Blue lines represent day when the sales are 0"
+    )
 }
 
-sales_data %>%
-  ggplot() +
-  geom_line(aes(Day, Sales)) +
-  geom_vline(xintercept =stockout, color= "blue") +
-  geom_point(aes(Day, Sales, color = col1)) +
-  scale_colour_manual(values = c('black', 'red')) +
-  geom_hline(yintercept = u150,
-             linetype = 2,
-             colour = "red") +
-  guides(color = FALSE) +
-  labs (title = "Sales above the threshold of 150 are highlighted in red",
-        subtitle = "Blue lines represent day when the sales are 0")
-
-cutter(sales_data$Sales, u170)
-
-sales_data %>%
-  ggplot() +
-  geom_line(aes(Day, Sales)) +
-  geom_vline(xintercept =stockout, color= "blue") +
-  geom_point(aes(Day, Sales, color = col2)) +
-  scale_colour_manual(values = c('black', 'red')) +
-  geom_hline(yintercept = u170,
-             linetype = 2,
-             colour = "red") +
-  guides(color = FALSE) + 
-  labs (title = "Sales above the threshold of 170 are highlighted in red",
-        subtitle = "Blue lines represent day when the sales are 0")
-
-# The code below is to be removed later
-# for (i in seq_along(different_u)){
-#   cutter(sales_data$Sales, different_u[[i]])
-#   
-# }
-# cutter(sales_data$Sales, u150)
-
+plotter("col1",u150)
+plotter("col2", u170)
 ```
-In order to define which threshold is the best, we are going to fit a GPD to the difference between the extremes and the thresholds, then use the AIC criteria to define the best model.
+
+ilia: comment to be modified/removed?
+<!-- In order to define which threshold is the best, we are going to fit a GPD to the difference between the extremes and the thresholds, then use the AIC criteria to define the best model. -->
 
 ```{r}
-u120 <- 120
-u190 <- 170
-
-
 gpd_u150 <- fpot(sales_data$Sales, threshold = u150, model = c("gpd"))
 gpd_u170 <- fpot(sales_data$Sales, threshold = u170, model = c("gpd"))
 
-par(mfrow = c(2,2))
+par(mfrow = c(1,2))
 plot(gpd_u150, which = 1)
 plot(gpd_u170, which = 1)
 ```
@@ -241,34 +210,68 @@ plot(gpd_u170, which = 1)
 Comparing the pp-plots of the two models, we decide to use the threshold of 150 as it provides better results. Thus, we will use the model with this threshold to compute the Value at Risk.
 
 ```{r}
+# computing sales over the threshold
 n.sales <- sales_data %>%
   filter(Sales > u150) %>%
   summarize(n = n()) %>%
   pull(n)
 
-p.sales <- n.sales/length(sales_data$Sales)
+# f-bar
+p.sales <- n.sales / length(sales_data$Sales)
 
-VAR <- u150 + gpd_u150$estimate[1]/gpd_u150$estimate[2] * (((1-cf_news)/p.sales)^-gpd_u150$estimate[2]-1)
+# Var formula
+VAR <-
+  u150 + gpd_u150$estimate[1] / gpd_u150$estimate[2] * (((1 - cf_news) /
+                                                           p.sales) ^ -gpd_u150$estimate[2] - 1)
 
 VAR[[1]]
-
 ```
 
 ## part f - binomial backtesting
 
-Back test as seen on the slides. We will go over this in more detail.
-
-### e
-```{r}
-sales_poisson <- MASS::fitdistr(sales_data$Sales, "Poisson")
-mu <- sales_poisson$estimate
-critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
-```
-
+First we create the test set that we're going to use as well as setting
 ```{r}
 # We create a test set that we can use
 sales_test <- sales_data %>% tail(300)
 
+# Then we set the train ize
+train_size <- 365
+
+# This will be use later for indexing during the moving window 
+n_above <- nrow(sales_data)+1
+```
+
+### Poisson model
+```{r}
+# We initiate an empty vector to store our results for poisson
+risk_values <- seq_along(sales_test$Sales)
+
+for (i in seq_along(sales_test$Sales)) {
+  # chosen window
+  window <- sales_data %>% slice((n_above - i - train_size):(n_above - i))
+  # we fit the distribution
+  sales_poisson <- MASS::fitdistr(window$Sales, "Poisson")
+  # calculating the value at risk
+  risk_values[i] <- qpois(cf_news,sales_poisson$estimate)
+  # Bernoulli violations
+  risk_values[i] <- ifelse(risk_values[i] > sales_test$Sales[i], 0, 1)
+}
+
+# theoretical violations
+sales_theory <-nrow(sales_test) * (1-cf_news)
+
+# summing up violations
+sales_violations <- sum(risk_values)
+
+# This method or the next? Which paramters are right?
+prop.test((nrow(sales_test)-sales_violations),nrow(sales_test), cf_news)
+
+binom.test(sales_violations,nrow(sales_test), p=1-cf_news) # not sure if the conf.level or the p
+
+```
+
+### POT model
+```{r}
 # Create a function for our models
 sales_risk <- function(u_threshold, a_dataframe, a_column, alpha) {
   # filtering for observations above a threshold
@@ -297,12 +300,8 @@ sales_risk <- function(u_threshold, a_dataframe, a_column, alpha) {
 # applying it as an example
 # sales_risk(150, sales_data, Sales, cf_news)
 
-# ---
-
 # loop over for calculating the VAR of 365 days
-train_size <- 365
 risk_values <- seq_along(sales_test$Sales)
-n_above <- nrow(sales_data)+1
 
 for (i in seq_along(sales_test$Sales)) {
   # chosen window
@@ -319,14 +318,11 @@ sales_theory <-nrow(sales_test) * (1-cf_news)
 # summing up violations
 sales_violations <- sum(risk_values)
 
-binom.test(sales_violations, nrow(sales_test), p=1-cf_news)
-
-# 22 or more violations
-
-# evd bays, prior to the parameter
+binom.test(sales_violations,nrow(sales_test), p=1-cf_news) # not sure if the conf.level or the p
 ```
 
-We can also do use the 90th of the data for the threshold.
+In order to set the `u`, we can also do use the 90th of the data for the threshold.
+
 ```{r}
 train_size <- 365
 risk_values <- seq_along(sales_test$Sales)
@@ -347,37 +343,19 @@ for (i in seq_along(sales_test$Sales)) {
 
 # higher than the quantile, not possible!
 
-# theoretical violations
-sales_theory <-nrow(sales_test) * (1-cf_news)
-
 # summing up violations
 sales_violations <- sum(risk_values)
 
 # histogram of all the p hats and you check if the test stat is the center of
 # of distribution
 
-
 # Naturally our critical fractile is the alpha here, right?
-prop.test((nrow(sales_test)-sales_violations),nrow(sales_test), cf_news)
+# prop.test((nrow(sales_test)-sales_violations),nrow(sales_test), cf_news)
 
 # bootstrapping, that we have a distibution for it
 
-prop.test(sales_violations,nrow(sales_test), p=1-cf_news)
+# prop.test(sales_violations,nrow(sales_test), p=1-cf_news)
 
 # Or the method below
 binom.test(sales_violations, nrow(sales_test), p=1-cf_news)
-
-```
-
-### d
-```{r}
-# function (){
-#   MASS::fitdistr(sales_data$Sales, "Poisson")
-mu <- sales_poisson$estimate
-critical_fractile_poisson <- qpois(cf_news,sales_poisson$estimate)
-
-```
-
-
-```{r}
 ```

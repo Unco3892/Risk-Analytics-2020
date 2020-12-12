@@ -9,6 +9,7 @@ packages <- c(
   "ggrepel", "gghighlight", "patchwork", "scales", # for plotting
   "knitr", "kableExtra", "bookdown", "rmarkdown",
   "evd",
+  "MASS",
   "prettydoc")
 
 # install packages if they were not already installed
@@ -47,17 +48,15 @@ opts_chunk$set(
   fig.asp = 0.618,
   fig.show = "hold",
   message = FALSE,
-  echo = TRUE,
+  echo = FALSE,
   warning = FALSE
   )
 
 # creating function for a nice kable
 kable_maker <- function(a_tibble, ...) {
   a_tibble %>%
-    kable(longtable = TRUE,align='l',...) %>%
-    kable_styling(bootstrap_options = c("striped", "hover")) %>%
-    `if`(nrow(a_tibble) > 5, (.) %>% scroll_box(height = "260px"), .) %>% 
-    `if`(ncol(a_tibble) > 20, (.) %>% scroll_box(height = "120px"), .)
+    kable(caption = ..., align = "c") %>% 
+    kable_styling(bootstrap_options = c("striped", "hover"))
 }
 
 # using the kable_maker to display the first 5 rows for exercise 3
