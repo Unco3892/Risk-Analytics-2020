@@ -295,10 +295,8 @@ return_level
 ```
 
 After one year, we expect the Average waiting time in seconds to be of `r return_level` seconds. 
+We are going to use this data in order to compute first the level, then the Value-at-Risk which is going to be providing the confidence line. 
 
-### POT
-
-Confidence Line
 ```{r}
 n.survivors <- waiting %>%
   filter(Average.Wait.Seconds > u1) %>%
