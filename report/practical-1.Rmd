@@ -307,12 +307,15 @@ n.survivors <- waiting %>%
 
 p.survivors <- n.survivors/length(waiting$Average.Wait.Seconds)
 
-confidence_line <- u1 + fit_pot_u1$estimate[1]/fit_pot_u1$estimate[2] * (((1-p)/p.survivors)^-fit_pot_u1$estimate[2]-1)
+# confidence_line <- u1 + fit_pot_u1$estimate[1]/fit_pot_u1$estimate[2] * (((1-p)/p.survivors)^-fit_pot_u1$estimate[2]-1)
+# 
+# confidence_line[[1]]
 
-confidence_line[[1]]
+alpha <- 1 - 1/return_level
+VAR <- u1 + fit_pot_u1$estimate[1]/fit_pot_u1$estimate[2]*(((1-alpha)/p.survivors)^-fit_pot_u1$estimate[2] -1)
 
 ```
 
-We expect the confidence line to be at `r confidence_line`.
+We expect the confidence line to be at `r VAR`.
 
 
