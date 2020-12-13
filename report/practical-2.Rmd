@@ -99,7 +99,6 @@ Newsboy(m= mean_s,sd= sd_s,p=10,c=1,s=0.1)
 ```
 
 Hence, the critical fractile will be computed as $$q = F^-1(`r cf_news`)$$. 
-### PIA: is it possible to write the equation in a nicer way?
 
 ## part c - critical fractile and Value at Risk
 Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor model as a constraint, limiting the probability of particular event (in this case stock-out) happening. In fact, we can say that the critical fractile of the newsvendor model is the equivalent the level of the Value-at-Risk  (`r cf_news`): we don't want to go beyond this value to avoid entering the extreme values. 
@@ -107,9 +106,6 @@ Value-at-Risk (VaR) also known as chance constraint is used in the newsvendor mo
 Expected shortfall or conditional or sometimes called conditional value-at-risk , is about 'how bad can things get?'. More concrectly, one could compute the Value-at-Risk at a level of  `r cf_news`, and compute the expected shortfall which indicates the average value of sales when we enter the extremes of the distribution, hence when the sales are extremely high which, as we saw in the beginning of this analysis, is likely to lead to a stockout.
 
 ## part d - model using the poisson distribution
-Poisson model.
-
-using maximum likelihood estimation for μ.
 
 ```{r}
 # Manual approach
