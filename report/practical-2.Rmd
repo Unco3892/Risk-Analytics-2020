@@ -150,7 +150,7 @@ u_plot <- function (a_column) {
 u_plot(sales_data$Sales)
 ```
 
-Thresholds of 150 and 170 seem interesting, we can test for all three.
+Thresholds of 150 and 170 seem interesting, we can test for both. 
 
 ```{r}
 # different_u <- list(u150=(150, u170= 170)
@@ -191,8 +191,6 @@ plotter("col1",u150)
 plotter("col2", u170)
 ```
 
-ilia: comment to be modified/removed?
-<!-- In order to define which threshold is the best, we are going to fit a GPD to the difference between the extremes and the thresholds, then use the AIC criteria to define the best model. -->
 
 ```{r}
 gpd_u150 <- fpot(sales_data$Sales, threshold = u150, model = c("gpd"))
@@ -259,12 +257,10 @@ sales_theory <-nrow(sales_test) * (1-cf_news)
 # summing up violations
 sales_violations <- sum(risk_values)
 
-# This method or the next? Which paramters are right?
-prop.test((nrow(sales_test)-sales_violations),nrow(sales_test), cf_news)
-
-binom.test(sales_violations,nrow(sales_test), p=1-cf_news) # not sure if the conf.level or the p
-
+binom.test(sales_violations,nrow(sales_test), p=1-cf_news)
 ```
+Looking at the binomial test we see that the p-value is reallt low. Thus, we have to reject the null hypothesis, meaning that the observed number of violations is not equal to the expected number of violations. 
+
 
 ### POT model
 ```{r}
@@ -314,44 +310,7 @@ sales_theory <-nrow(sales_test) * (1-cf_news)
 # summing up violations
 sales_violations <- sum(risk_values)
 
-binom.test(sales_violations,nrow(sales_test), p=1-cf_news) # not sure if the conf.level or the p
+binom.test(sales_violations,nrow(sales_test), p=1-cf_news) 
 ```
 
-In order to set the `u`, we can also do use the 90th of the data for the threshold.
-
-```{r}
-train_size <- 365
-risk_values <- seq_along(sales_test$Sales)
-n_above <- nrow(sales_data)+1
-threshold_record <- risk_values
-  
-for (i in seq_along(sales_test$Sales)) {
-  # chosen window
-  window <- sales_data %>% slice((n_above - i - train_size):(n_above - i))
-  # calculating the value at risk
-  threshold <- quantile(window$Sales, 0.9)
-  # we record the threshold we have chosen
-  threshold_record[i] <- threshold
-  risk_values[i] <- sales_risk(threshold, window, Sales, cf_news)
-  # Bernoulli violations
-  risk_values[i] <- ifelse(risk_values[i] > sales_test$Sales[i], 0, 1)
-}
-
-# higher than the quantile, not possible!
-
-# summing up violations
-sales_violations <- sum(risk_values)
-
-# histogram of all the p hats and you check if the test stat is the center of
-# of distribution
-
-# Naturally our critical fractile is the alpha here, right?
-# prop.test((nrow(sales_test)-sales_violations),nrow(sales_test), cf_news)
-
-# bootstrapping, that we have a distibution for it
-
-# prop.test(sales_violations,nrow(sales_test), p=1-cf_news)
-
-# Or the method below
-binom.test(sales_violations, nrow(sales_test), p=1-cf_news)
-```
+At a level of 5%, we are once again going to reject the null hyopthesis that te observed number of violations is the same as the estimated one. However, we draw a different conclusion at a level of 1%. In this case when looking at the p-value, one can observe that the null hypothesis can't be rejected.
