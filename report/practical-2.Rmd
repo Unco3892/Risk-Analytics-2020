@@ -308,4 +308,4 @@ sales_violations <- sum(risk_values)
 binom.test(sales_violations,nrow(sales_test), p=1-cf_news) 
 ```
 
-At a level of 5%, we are once again going to reject the null hyopthesis that te observed number of violations is the same as the estimated one. However, we draw a different conclusion at a level of 1%. In this case when looking at the p-value, one can observe that the null hypothesis can't be rejected.
+At a level of 5%, we are once again going to reject the null hypothesis that the observed number of violations is the same as the estimated one. However, we draw a different conclusion at a level of 1%. In this case when looking at the p-value, one can observe that the null hypothesis can't be rejected.
