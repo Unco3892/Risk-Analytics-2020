@@ -24,7 +24,7 @@ ggplot(data = sales_data, aes(x = Day, y = Sales)) +
 
 The red line shows when the observed number of sales goes to zero, essentially the extreme of the sales, there are also other instances where it nears to zero however we ignore them for simplicity sake. We run of stock in these cases.
 
-From the graph above, we can also notice that right before going out of stock, the sales are extremely high. When looking at the first block, from day 0 to day 330 which is the first stockout, the sales data are distributes as follows:
+From the graph above, we can also notice that right before going out of stock, the sales are extremely high. When looking at the first block, from day 0 to day 330 which is the first stockout, the sales data are distributed as follows:
 
 ```{r}
 sales_data %>% 
