@@ -11,7 +11,7 @@ source(here::here("scripts/setup.R"))
 waiting <- read.csv(here::here("data/waiting.csv"))
 ```
 
-*Graph* displays the daily waiting times period that the Data covers. It is difficult to notice any seasonality or cyclic patterns in the extreme waiting times.
+The *Graph* displays the daily waiting times period that the Data covers. It is difficult to notice any seasonality or cyclic patterns in the extreme waiting times.
 
 ```{r}
 waiting$Date <- as.Date(waiting$Date)
@@ -25,7 +25,9 @@ waiting %>%
         y = "Time [seconds]")
 ```
 
-As shown on *graph* and on *table*, Monday, Tuesday and Wednesday are the days of the week tht present the highests extreme values. We can also notice that even if Friday has the highest average waiting time, its maximum value is the lowest.
+As shown on the *boxplot* and on the *table*, Monday, Tuesday and Wednesday are the days of the week tht present the highests extreme values. We can also notice that even if Friday has the highest average waiting time, its maximum value is the lowest.
+
+Moreover, the *boxplot* shows that the first 4 days of the week there are outliers, which are the part values that we analyse when working with extreme values.
 
 ```{r}
 waiting %>%
@@ -73,7 +75,7 @@ upper_limit %>%
 
 The upper control limit corresponds to `r upper_limit`.
 
-*Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theorical values under the assumption of a normal distribution. This suggests that the tails are heavy.
+The *Graph* suggest that the normal distribution is not appropriate to predict extreme values, the extreme observations tend to diverge strongly from their theorical values under the assumption of a normal distribution. This suggests that the tails are heavy.
 ```{r}
 qqnorm(scale(waiting$Average.Wait.Seconds))
 qqline(scale(waiting$Average.Wait.Seconds))
@@ -117,7 +119,7 @@ plot_all_obs + geom_vline(xintercept=as.numeric(tmp$x),
 
 
 Looking at the data aggregation per month and week, we can say that the first seems to be better. However in order to confirm this hypothesis, when modelling we are going to analyse both cases and keep the model that provides the best results.
-For the models, we are going to fit a GEV functin on the maxima of each block, represented by the red dots in the following plots.
+For the models, we are going to fit a GEV function on the maxima of each block, represented by the red dots in the following plots.
 
 ```{r}
 maxima_monthly <- waiting %>% 
@@ -240,6 +242,8 @@ function that is concave: this is a consequence of the negative shape parameter.
 
 We are now going to make the same analysis but this time using the weekly maxima.
 
+Weekly:
+
 ```{r, warning = FALSE, message = FALSE}
 fit_gev_maxima_weekly <- fgev(maxima_weekly$Average.Wait.Seconds)
 fit_gev_maxima_weekly
@@ -279,7 +283,7 @@ par(mfrow=c(2,2))
 plot(fit_pot_u2)
 ```
 
-Naturally, having a higher threhsold the number of observations is lower. Looking at the results, we can conclude that we should select the threshold `r u1` since it allows having a better pp-plot and qq-plot.
+Naturally, having a higher threshold, the number of observations is lower. Looking at the results, we can conclude that we should select the threshold `r u1` since it allows having a better pp-plot and qq-plot.
 
 ## part e - upper control limit 
 ### Block Maxima
@@ -305,15 +309,13 @@ n.survivors <- waiting %>%
 
 p.survivors <- n.survivors/length(waiting$Average.Wait.Seconds)
 
-# confidence_line <- u1 + fit_pot_u1$estimate[1]/fit_pot_u1$estimate[2] * (((1-p)/p.survivors)^-fit_pot_u1$estimate[2]-1)
-# 
-# confidence_line[[1]]
-
 alpha <- 1 - 1/return_level
 VAR <- u1 + fit_pot_u1$estimate[1]/fit_pot_u1$estimate[2]*(((1-alpha)/p.survivors)^-fit_pot_u1$estimate[2] -1)
 
 ```
 
 We expect the confidence line to be at `r VAR`.
+
+Interestingly, both the return level and the confidence line are higher compared to the maximum average waiting time in our data set. This suggests that even if visually we were not able to see a trend, actually there is one positive tren in our data. 
 
 

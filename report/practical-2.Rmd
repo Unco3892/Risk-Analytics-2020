@@ -27,10 +27,10 @@ The red line shows when the observed number of sales goes to zero, essentially t
 From the graph above, we can also notice that right before going out of stock, the sales are extremely high. When looking at the first block, from day 0 to day 330 which is the first stockout, the sales data are distributes as follows:
 
 ```{r}
-sales_data %>% 
-  arrange(Sales) %>%
-  head() %>%
-  kable_maker(caption="The first 6 lowest sales")
+# sales_data %>% 
+#   arrange(Sales) %>%
+#   head() %>%
+#   kable_maker(caption="The first 6 lowest sales")
 
 sales_data %>% 
   filter(Day < 330) %>% 
@@ -63,7 +63,7 @@ sales_data %>%
   labs(title = "Sales unit in the between the 2nd and the 3rd stockout")+
   theme(plot.title = element_text(hjust = 0.5))
 ```
-Looking at the sales data distribution in the above graph, one can notice that n the one hand the Sales demand until Day 600 seems kind of linear, but on the other hand following this day it looks like there is once again a positive trend. 
+Looking at the sales data distribution in the above graph, one can notice that on the one hand the Sales demand until Day 600 seems kind of linear, but on the other hand following this day it looks like there is once again a positive trend. 
 
 Going over each block of data is not necessary as the observations above are already conclusive: the vendors go out of stock when there is an increasing demand. The sellers were probably not able to forecast the positive trends and to manage the inventory given the increasing sales, leading them to stockout.
 
@@ -119,7 +119,7 @@ newsvendor_mod <- function(price,cost,unit_salvage){
 
 cf_news <- newsvendor_mod(10,1,0.1)
 
-cf_news
+newsvendor_mod
 ```
 
 Using the proposed function, we can fit the Poisson model to our data an compute the estimated μ by using the MLE.
@@ -201,7 +201,7 @@ plot(gpd_u150, which = 1)
 plot(gpd_u170, which = 1)
 ```
 
-Comparing the pp-plots of the two models, we decide to use the threshold of 150 as it provides better results. Thus, we will use the model with this threshold to compute the Value at Risk.
+Comparing the pp-plots of the two models, we decide to use the threshold of 150 as it provides better results. Thus, we will use the model with this threshold to compute the Value at Risk. We will obtain the following Value at Risk:
 
 ```{r}
 # computing sales over the threshold
@@ -259,7 +259,7 @@ sales_violations <- sum(risk_values)
 
 binom.test(sales_violations,nrow(sales_test), p=1-cf_news)
 ```
-Looking at the binomial test we see that the p-value is reallt low. Thus, we have to reject the null hypothesis, meaning that the observed number of violations is not equal to the expected number of violations. 
+Looking at the binomial test we see that the p-value is really low. Thus, we have to reject the null hypothesis, meaning that the observed number of violations is not equal to the expected number of violations. 
 
 
 ### POT model
