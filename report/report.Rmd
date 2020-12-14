@@ -17,6 +17,6 @@ output:
 ```{r child = 'practical-2.Rmd'}
 ```
 
-```{r child = 'practical-3.Rmd', eval=FALSE}
+```{r child = 'practical-3.Rmd'}
 ```
 
