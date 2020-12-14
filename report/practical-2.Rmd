@@ -197,8 +197,8 @@ gpd_u150 <- fpot(sales_data$Sales, threshold = u150, model = c("gpd"))
 gpd_u170 <- fpot(sales_data$Sales, threshold = u170, model = c("gpd"))
 
 par(mfrow = c(1,2))
-plot(gpd_u150, which = 1)
-plot(gpd_u170, which = 1)
+plot(gpd_u150, which = 1, main = "Probability Plot, u = 150")
+plot(gpd_u170, which = 1, main = "Probability Plot, u = 170")
 ```
 
 Comparing the pp-plots of the two models, we decide to use the threshold of 150 as it provides better results. Thus, we will use the model with this threshold to compute the Value at Risk. We will obtain the following Value at Risk:
