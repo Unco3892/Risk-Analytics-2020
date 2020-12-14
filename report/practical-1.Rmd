@@ -219,7 +219,7 @@ We are going to fit a GPD on the difference between the observations highleted i
 ## part d - modelling the extremes 
 ### Block Maxima
 
-To see what kind of distribution to use, we have to estimate $\xi, $\sigma, and $\mu for the maxima. First, we will fit a model on the monthly maxima, then on the weekly ones.
+To see what kind of distribution to use, we have to estimate $\xi$, $\sigma$, and $\mu$ for the maxima. First, we will fit a model on the monthly maxima, then on the weekly ones.
 
 Monthly :
 ```{r, warning = FALSE, message = FALSE}
@@ -274,7 +274,7 @@ fit_pot_u2 <-fpot(waiting$Average.Wait.Seconds, threshold = u2, model = c("gpd")
 par(mfrow=c(2,2))
 plot(fit_pot_u1)
 ```
-The plots above are the results of the analysis using a threhsold of `r u1`. We can see that the output are good, meaning that the model is well fitted to our data. Moreover, we can observe that once again the Return Level Plot has a function that is concave, suggesting a negative shape parameter for the model. 
+The plots above are the results of the analysis using a threhsold of `r u1`. We can see that the outputs are good, meaning that the model is well fitted to our data. Moreover, we can observe that once again the Return Level Plot has a function that is concave, suggesting a negative shape parameter for the model. 
 
 We are now going to do the same analysis using a threshold of `r u2`
 
