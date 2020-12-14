@@ -27,11 +27,6 @@ The red line shows when the observed number of sales goes to zero, essentially t
 From the graph above, we can also notice that right before going out of stock, the sales are extremely high. When looking at the first block, from day 0 to day 330 which is the first stockout, the sales data are distributes as follows:
 
 ```{r}
-# sales_data %>% 
-#   arrange(Sales) %>%
-#   head() %>%
-#   kable_maker(caption="The first 6 lowest sales")
-
 sales_data %>% 
   filter(Day < 330) %>% 
   ggplot(aes(x=Day, y = Sales))+
