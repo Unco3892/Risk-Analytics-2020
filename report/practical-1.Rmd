@@ -49,9 +49,9 @@ waiting %>%
   ggplot(aes(Average.Wait.Seconds, Weekday)) +
   geom_boxplot() +
   coord_flip() +
-  labs (title = "Average waiting time per day",
-        x = "Day",
-        y = "Time [seconds]")
+  labs (title = "Distribution of waiting times per day",
+        y = "Day",
+        x = "Time [seconds]")
 ```
 
 ## part b - normal approximation
