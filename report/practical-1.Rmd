@@ -286,22 +286,36 @@ plot(fit_pot_u2)
 Naturally, having a higher threshold, the number of observations is lower. Looking at the results, we can conclude that we should select the threshold `r u1` since it allows having a better pp-plot and qq-plot.
 
 ## part e - upper control limit 
-### Block Maxima
 
-Even if our dataset only consider the working days, we should use 365 days to compute the one year return level.
+Since it is difficult to distingish which is the best model between the Block Maxima (weekly) and the Peaks-over-thresold (with u = 600), we are going to compute confidence line at the one year return level for both approaches.
+
+### Block Maxima
 
 ```{r}
 # return level block maxima:
-return_level_maxima <- fit_gev_maxima_weekly$estimate[1] + (fit_gev_maxima_weekly$estimate[2]/fit_gev_maxima_weekly$estimate[3])*(((-log(1-1/365))^-fit_gev_maxima_weekly$estimate[3])-1)
+return_level_maxima <- fit_gev_maxima_weekly$estimate[1] + (fit_gev_maxima_weekly$estimate[2]/fit_gev_maxima_weekly$estimate[3])*(((-log(1-1/50))^-fit_gev_maxima_weekly$estimate[3])-1)
 
-return_level <- return_level_maxima[[1]]
-return_level
+VaR_BM <- return_level_maxima[[1]]
+VaR_BM
 ```
 
-After one year, we expect the Average waiting time in seconds to be of `r return_level` seconds. 
-We are going to use this data in order to compute first the level, then the Value-at-Risk which is going to be providing the confidence line. 
+Using the Block Maxima approach `r VaR_BM` is the average waiting time that is expected to be exceeded once every 250 open days (one year).
 
 ```{r}
+waiting %>%
+  group_by(year(Date)) %>%
+  filter(Average.Wait.Seconds > VaR_BM) %>%
+  ungroup() %>%
+  dplyr::select(Date, Average.Wait.Seconds)
+```
+
+Using the historical data, we notice that this thresold as been exceeded twice in two years.
+
+### POT
+
+```{r}
+alpha <- p
+
 n.survivors <- waiting %>%
   filter(Average.Wait.Seconds > u1) %>%
   summarize(n = n()) %>%
@@ -309,13 +323,12 @@ n.survivors <- waiting %>%
 
 p.survivors <- n.survivors/length(waiting$Average.Wait.Seconds)
 
-alpha <- 1 - 1/return_level
-VAR <- u1 + fit_pot_u1$estimate[1]/fit_pot_u1$estimate[2]*(((1-alpha)/p.survivors)^-fit_pot_u1$estimate[2] -1)
-
+VaR_POT <- u1 + fit_pot_u1$estimate[1]/fit_pot_u1$estimate[2]*(((1-alpha)/p.survivors)^-fit_pot_u1$estimate[2] -1)
 ```
 
-We expect the confidence line to be at `r VAR`.
+Using the POT approach, we conclude that `r VaR_POT` is the average waiting time that is expected to be exceeded once every 250 open days (one year). Since this thresold is higher than the one obtained using the Block Maxima approach, will can also conclude that it has also been exceeded twice in the historical data.
 
-Interestingly, both the return level and the confidence line are higher compared to the maximum average waiting time in our data set. This suggests that even if visually we were not able to see a trend, actually there is one positive tren in our data. 
+To conclude, we prefer to adopt a conservative approach and retain the confidence line with the lowest value, that is `r VaR_BM`, obtained with the Block Maxima approach.
+
 
 
