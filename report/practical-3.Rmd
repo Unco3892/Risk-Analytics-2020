@@ -5,9 +5,6 @@ output: html_document
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 source(here::here("scripts/setup.R"))
-
-library(reshape2)
-library(copula)
 ```
 
 
@@ -125,7 +122,7 @@ Conversely, Figure 3.4 shows low tail-dependence for product 2 & 10.
 ## part c - Gaussian Copula
 
 The Gaussian copula is asymptotically independent in both upper and lower tails.
-Since a majority of pairs are dependent in upper tail, the Gaussian copula seems inappropriate as it would lead to an under estimation of the VaR.
+Since a majority of pairs are dependent in the upper tail, the Gaussian copula seems inappropriate as it would lead to an under estimation of the VaR.
 
 ## part d - VaR of a basket of product
 

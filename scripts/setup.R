@@ -10,7 +10,9 @@ packages <- c(
   "knitr", "kableExtra", "bookdown", "rmarkdown",
   "evd",
   "MASS",
-  "prettydoc")
+  "prettydoc",
+  "reshape2",
+  "copula")
 
 # install packages if they were not already installed
 unavailable <- setdiff(packages, rownames(installed.packages()))
