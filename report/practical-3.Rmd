@@ -18,11 +18,11 @@ sales_10_adj <-
 
 # Practical 3: Demand monitoring, part II
 
-## Part a - Analysing the risk in a multi-product context
+## part a - Analysing the risk in a multi-product context
 
 The main challenge under this configuration is dealing the with the correlation between the products of the basket. As the VaR is not additive, figures of components of a basket do not add to the risk of the overall basket. This is because this measure does not take correlations into account and a simple addition could lead to double counting and underestimating the risk, especially when the tail dependence is rather high.
 
-## Part b - Tail Dependence
+## part b - Tail Dependence
 
 ```{r chibar, echo=FALSE, fig.cap= "Figure 3.1"}
 #CHI BAR
@@ -120,14 +120,14 @@ Chi Bar plot may also be usefull to detect tail dependency. As shown on Graph 3.
 chiplot(cbind(sales_10_adj[,2], sales_10_adj[,10]), which = 2, main2 = "Chi Bar Plot for products 2 & 10")
 ```
 
-Conversly, Figure 3.4 shows low tail-dependence for product 2 & 10.
+Conversely, Figure 3.4 shows low tail-dependence for product 2 & 10.
 
-## Part c - Gaussian Copula
+## part c - Gaussian Copula
 
 The Gaussian copula is asymptotically independent in both upper and lower tails.
 Since a majority of pairs are dependent in upper tail, the Gaussian copula seems inappropriate as it would lead to an under estimation of the VaR.
 
-## Part d - VaR of a basket of product
+## part d - VaR of a basket of product
 
 ### i. Unifrom transformation
 
@@ -271,11 +271,11 @@ fit_results %>% arrange(AIC) %>%
                                                   ))
 ```
 
-Table 3.2 displays the Coppulas that have been fitted to the transformed data. With an AIC of -508, the T coppula suits the best the data and will be retained for the following of our analysis.
+Table 3.2 displays the Copulas that have been fitted to the transformed data. With an AIC of -508, the T copula suits the best the data and will be retained for the following of our analysis.
 
 ### iii. Data generation using fited copula
 
-After selecting the best coppula, we generate 1913 instances for each products to which we apply the inverse of the transformation that has been made in point i.
+After selecting the best copula, we generate 1913 instances for each products to which we apply the inverse of the transformation that has been made in point i.
 
 ```{r echo=FALSE}
 set.seed(1234)
@@ -319,47 +319,3 @@ VaR <- quantile(S, 0.95)
 ```
 
 The Value at Risk for the simulated data is obtained by taking the 95 % quantile of the row sums and corresponds to `r VaR`
-
-<!-- ```{r} -->
-<!-- #Original Data -->
-<!-- quantile(rowSums(sales_10_adj), 0.95) -->
-<!-- ``` -->
-
-<!-- Sum of the VaR -->
-<!-- ```{r} -->
-<!-- #Generated + retransformed -->
-<!-- sum(apply(simulated_inversed, 2, quantile, 0.95)) -->
-<!-- ``` -->
-
-
-<!-- ```{r} -->
-<!-- # original data -->
-<!-- sum(apply(sales_10_adj, 2, quantile, 0.95)) -->
-<!-- ``` -->
-
-<!-- ```{r} -->
-<!-- fit_simulated <- evd::fpot(S, quantile(S, 0.9)) -->
-
-
-<!-- u <- fit_simulated$threshold -->
-<!-- p <- length(fit_simulated$exceedances)/length(S) -->
-
-
-<!-- VAR <- u + fit_simulated$estimate[1]/fit_simulated$estimate[2] * (((1-0.95)/p)^-fit_simulated$estimate[2]-1) -->
-
-<!-- VAR[[1]] -->
-<!-- ``` -->
-
-
-<!-- ```{r message=FALSE, warning=FALSE} -->
-
-<!-- VaR <- numeric(10) -->
-
-<!-- for (i in 1:10) { -->
-<!-- mod <- QRM::fit.GPD(simulated_inversed[,i], threshold = quantile(simulated_inversed[,i], 0.9)) -->
-<!-- VaR[i] <- QRM::RiskMeasures(mod, c(0.95))[2] -->
-<!-- } -->
-
-<!-- sum(VaR) -->
-<!-- ``` -->
-
